@@ -243,7 +243,8 @@ export default function AdminReservationsPage() {
                                 onClick={async () => {
                                   if (!reservation.id) return;
                                   setUpdating(reservation.id);
-                                  await fetch(process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000' + `/api/reservas/${reservation.id}/payment-status`, {
+                                  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+                                  await fetch(`${baseUrl}/api/reservas/${reservation.id}/payment-status`, {
                                     method: 'PATCH',
                                     headers: {
                                       'Content-Type': 'application/json',
@@ -264,7 +265,8 @@ export default function AdminReservationsPage() {
                                 onClick={async () => {
                                   if (!reservation.id) return;
                                   setUpdating(reservation.id);
-                                  await fetch(process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000' + `/api/reservas/${reservation.id}/payment-status`, {
+                                  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000';
+                                  await fetch(`${baseUrl}/api/reservas/${reservation.id}/payment-status`, {
                                     method: 'PATCH',
                                     headers: {
                                       'Content-Type': 'application/json',
