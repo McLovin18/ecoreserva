@@ -1,15 +1,9 @@
 'use client';
 
-import { db } from '../utils/firebase';
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  getDoc, 
-  updateDoc, 
-  deleteDoc, 
-  onSnapshot
-} from 'firebase/firestore';
+// Servicio de carrito legacy. En EcoReserva (reservas de hospedaje)
+// solo mantenemos el modo invitado en localStorage y deshabilitamos
+// completamente la persistencia en Firebase/Firestore.
+
 import { inventoryService } from './inventoryService';
 
 // Reactivo interno del CartService
@@ -106,20 +100,9 @@ class CartService {
       🔹 GET USER CART
   =================================================================*/
   async getUserCart(userId: string): Promise<CartItem[]> {
-    if (!userId) {
-      return this.getGuestCart();
-    }
-
-    try {
-      const cartRef = doc(db, this.COLLECTION_NAME, userId);
-      const cartDoc = await getDoc(cartRef);
-      if (cartDoc.exists()) return (cartDoc.data() as CartData).items || [];
-      return [];
-
-    } catch (error) {
-      console.error("Error al obtener carrito:", error);
-      return [];
-    }
+    if (!userId) return this.getGuestCart();
+    console.warn('getUserCart en modo SQL solo soporta carrito invitado (localStorage).');
+    return [];
   }
 
 
@@ -158,76 +141,9 @@ class CartService {
 
     
 
-    /* ======================================
-          🟢 MODO LOGUEADO (Firebase)
-    ====================================== */
-    try {
-      // 🛑 Validar stock del inventario
-      const isAvailable = await inventoryService.isProductAvailable(
-        item.id,
-        item.quantity
-      );
-
-      if (!isAvailable) {
-        const stock = await inventoryService.getProductStock(item.id);
-        throw new Error(`No hay suficiente stock. Stock disponible: ${stock}`);
-      }
-
-      const cartRef = doc(db, this.COLLECTION_NAME, userId);
-      const cartDoc = await getDoc(cartRef);
-
-      let items: CartItem[] = [];
-      if (cartDoc.exists()) {
-        items = (cartDoc.data() as CartData).items || [];
-      }
-
-      const index = items.findIndex(i => i.id === item.id);
-
-      if (index !== -1) {
-        // sumar cantidad
-        const newQuantity = items[index].quantity + item.quantity;
-
-        const available = await inventoryService.isProductAvailable(item.id, newQuantity);
-        if (!available) {
-          const stock = await inventoryService.getProductStock(item.id);
-          throw new Error(`Cantidad supera stock. Stock actual: ${stock}`);
-        }
-
-        items[index].quantity += item.quantity;
-
-      } else {
-        items.push({
-          ...item,
-          userId,
-          dateAdded: new Date().toISOString()
-        });
-      }
-
-      const totalItems = items.reduce((a, b) => a + b.quantity, 0);
-      const totalPrice = items.reduce((a, b) => a + b.quantity * b.price, 0);
-
-      const newCart: CartData = {
-        userId,
-        items,
-        totalItems,
-        totalPrice,
-        lastUpdated: new Date().toISOString()
-      };
-
-      await setDoc(cartRef, newCart);
-
-      // 🔥 emitir actualización a los listeners del cartService
-      this.emit(items);
-
-      // 🔥 notificación global (carrito actualizado en otras páginas)
-      window.dispatchEvent(new Event("cart-updated"));
-
-      return true;
-
-    } catch (error) {
-      console.error("Error al agregar al carrito:", error);
-      throw error;
-    }
+    // 🟢 MODO LOGUEADO (deshabilitado: antes usaba Firebase)
+    console.warn('addToCart con usuario logueado está deshabilitado (Firestore removido).');
+    return false;
   }
 
 
@@ -243,23 +159,9 @@ class CartService {
       return true;
     }
 
-    // Logueado
-    try {
-      const cartRef = doc(db, this.COLLECTION_NAME, userId);
-      await setDoc(cartRef, {
-        userId,
-        items: [],
-        totalItems: 0,
-        totalPrice: 0,
-        lastUpdated: new Date().toISOString()
-      });
-      this.emit([]);
-      window.dispatchEvent(new Event("cart-updated"));
-      return true;
-    } catch (error) {
-      console.error("Error al limpiar el carrito:", error);
-      return false;
-    }
+    // Logueado (deshabilitado)
+    console.warn('clearCart para usuario logueado deshabilitado (Firestore removido).');
+    return false;
   }
 
 
@@ -285,45 +187,9 @@ class CartService {
       return true;
     }
 
-    /* Logueado */
-    try {
-      const available = await inventoryService.isProductAvailable(itemId, qty);
-      if (!available) {
-        const stock = await inventoryService.getProductStock(itemId);
-        throw new Error(`Stock insuficiente. Disponible: ${stock}`);
-      }
-
-      const cartRef = doc(db, this.COLLECTION_NAME, userId);
-      const cartDoc = await getDoc(cartRef);
-      if (!cartDoc.exists()) return false;
-
-      const cartData = cartDoc.data() as CartData;
-      const items = cartData.items;
-
-      const index = items.findIndex(i => i.id === itemId);
-      if (index === -1) return false;
-
-      if (qty <= 0) items.splice(index, 1);
-      else items[index].quantity = qty;
-
-      const totalItems = items.reduce((a, b) => a + b.quantity, 0);
-      const totalPrice = items.reduce((a, b) => a + b.quantity * b.price, 0);
-
-      await setDoc(cartRef, {
-        ...cartData,
-        items,
-        totalItems,
-        totalPrice,
-        lastUpdated: new Date().toISOString()
-      });
-
-      this.emit(items);
-      return true;
-
-    } catch (error) {
-      console.error("Error actualizando cantidad:", error);
-      throw error;
-    }
+    // Logueado (deshabilitado)
+    console.warn('updateCartItemQuantity para usuario logueado deshabilitado (Firestore removido).');
+    return false;
   }
 
 
@@ -339,73 +205,17 @@ class CartService {
       return true;
     }
 
-    /* Logueado */
-    try {
-      const cartRef = doc(db, this.COLLECTION_NAME, userId);
-      const cartDoc = await getDoc(cartRef);
-      if (!cartDoc.exists()) return false;
-
-      const cartData = cartDoc.data() as CartData;
-      const items = cartData.items.filter(i => i.id !== itemId);
-
-      const totalItems = items.reduce((a, b) => a + b.quantity, 0);
-      const totalPrice = items.reduce((a, b) => a + b.quantity * b.price, 0);
-
-      await setDoc(cartRef, {
-        ...cartData,
-        items,
-        totalItems,
-        totalPrice,
-        lastUpdated: new Date().toISOString()
-      });
-
-      this.emit(items);
-      return true;
-
-    } catch (error) {
-      console.error("Error al remover item:", error);
-      return false;
-    }
+    // Logueado (deshabilitado)
+    console.warn('removeFromCart para usuario logueado deshabilitado (Firestore removido).');
+    return false;
   }
 
   /* ================================================================
       🔹 MIGRATE LOCAL → FIREBASE
   =================================================================*/
   async migrateFromLocalStorage(userId: string): Promise<boolean> {
-    try {
-      if (!userId) return false;
-
-      const existing = await this.getUserCart(userId);
-      if (existing.length > 0) return false;
-
-      const guest = this.getGuestCart();
-      if (guest.length === 0) return false;
-
-      const merged = guest.map(i => ({
-        ...i,
-        userId,
-        dateAdded: new Date().toISOString()
-      }));
-
-      const totalItems = merged.reduce((a, b) => a + b.quantity, 0);
-      const totalPrice = merged.reduce((a, b) => a + b.quantity * b.price, 0);
-
-      await setDoc(doc(db, this.COLLECTION_NAME, userId), {
-        userId,
-        items: merged,
-        totalItems,
-        totalPrice,
-        lastUpdated: new Date().toISOString()
-      });
-
-      localStorage.removeItem(this.CART_GUEST_KEY);
-      this.emit(merged);
-      return true;
-
-    } catch (error) {
-      console.error("Error migrando carrito:", error);
-      return false;
-    }
+    console.warn('migrateFromLocalStorage deshabilitado (ya no se usa carrito en Firestore).');
+    return false;
   }
 }
 

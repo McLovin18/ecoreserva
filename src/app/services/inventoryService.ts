@@ -1,18 +1,6 @@
 'use client';
 
-import { db } from '../utils/firebase';
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  getDocs, 
-  query, 
-  where,
-  increment
-} from 'firebase/firestore';
+import { apiFetch } from '../utils/apiClient';
 
 export interface ProductInventory {
   productId: number;
@@ -25,6 +13,8 @@ export interface ProductInventory {
   lastUpdated: string;
   description?: string;
   details?: string[]; // Detalles del producto
+  ownerEmail?: string;
+  status?: 'pending' | 'approved' | 'rejected';
 }
 
 class InventoryService {
@@ -33,15 +23,8 @@ class InventoryService {
   // ✅ Obtener stock de un producto específico
   async getProductStock(productId: number): Promise<number> {
     try {
-      const docRef = doc(db, this.collectionName, productId.toString());
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        const data = docSnap.data() as ProductInventory;
-        return data.stock || 0;
-      }
-      
-      return 0; // Si no existe, stock es 0
+      const product = await this.getProductById(productId);
+      return product?.stock || 0;
     } catch (error) {
       console.error('Error obteniendo stock:', error);
       return 0;
@@ -51,14 +34,11 @@ class InventoryService {
   // ✅ Verificar si un producto está disponible (automático basado en stock)
   async isProductAvailable(productId: number, requestedQuantity: number = 1): Promise<boolean> {
     try {
-      const docRef = doc(db, this.collectionName, productId.toString());
-      const docSnap = await getDoc(docRef);
-      
-      if (!docSnap.exists()) return false;
-      
-      const data = docSnap.data() as ProductInventory;
-      // Producto disponible si tiene stock suficiente (isActive se actualiza automáticamente)
-      return data.stock >= requestedQuantity;
+      const product = await this.getProductById(productId);
+      if (!product) return false;
+      if (product.status === 'rejected') return false;
+      if (product.status && product.status !== 'approved') return false;
+      return product.stock >= requestedQuantity;
     } catch (error) {
       console.error('Error verificando disponibilidad:', error);
       return false;
@@ -68,27 +48,20 @@ class InventoryService {
   // ✅ Reducir stock cuando se hace una compra
   async reduceStock(productId: number, quantity: number): Promise<boolean> {
     try {
-      const docRef = doc(db, this.collectionName, productId.toString());
-      const docSnap = await getDoc(docRef);
-      
-      if (!docSnap.exists()) {
-        console.error(`❌ Producto ${productId} no encontrado en inventario`);
+      const product = await this.getProductById(productId);
+      if (!product) {
         throw new Error(`El producto ${productId} no está registrado en el inventario`);
       }
-      
-      const currentData = docSnap.data() as ProductInventory;
-      
-      if (currentData.stock < quantity) {
-        console.error(`❌ Stock insuficiente para producto ${productId}: Disponible: ${currentData.stock}, Solicitado: ${quantity}`);
-        throw new Error(`Stock insuficiente para "${currentData.name}". Stock disponible: ${currentData.stock}, cantidad solicitada: ${quantity}`);
+
+      if (product.stock < quantity) {
+        throw new Error(`Stock insuficiente para "${product.name}". Stock disponible: ${product.stock}, cantidad solicitada: ${quantity}`);
       }
-      
-      await updateDoc(docRef, {
-        stock: increment(-quantity),
-        isActive: (currentData.stock - quantity) > 0, // Actualizar isActive automáticamente
-        lastUpdated: new Date().toISOString()
+
+      await apiFetch(`/api/hospedajes/${productId}/stock`, {
+        method: 'PATCH',
+        body: JSON.stringify({ delta: -quantity }),
       });
-      
+
       return true;
     } catch (error) {
       console.error('❌ Error reduciendo stock:', error);
@@ -99,23 +72,10 @@ class InventoryService {
   // ✅ Agregar stock (para admin) - actualiza isActive automáticamente
   async addStock(productId: number, quantity: number): Promise<boolean> {
     try {
-      const docRef = doc(db, this.collectionName, productId.toString());
-      const docSnap = await getDoc(docRef);
-      
-      if (!docSnap.exists()) {
-        console.error(`❌ Producto ${productId} no encontrado en inventario`);
-        return false;
-      }
-
-      const currentData = docSnap.data() as ProductInventory;
-      const newStock = currentData.stock + quantity;
-      
-      await updateDoc(docRef, {
-        stock: increment(quantity),
-        isActive: newStock > 0, // Activar automáticamente si hay stock
-        lastUpdated: new Date().toISOString()
+      await apiFetch(`/api/hospedajes/${productId}/stock`, {
+        method: 'PATCH',
+        body: JSON.stringify({ delta: quantity }),
       });
-      
       return true;
     } catch (error) {
       console.error('Error agregando stock:', error);
@@ -126,14 +86,16 @@ class InventoryService {
   // ✅ Crear o actualizar producto en inventario (para admin)
   async createOrUpdateProduct(productData: Omit<ProductInventory, 'lastUpdated' | 'isActive'>): Promise<boolean> {
     try {
-      const docRef = doc(db, this.collectionName, productData.productId.toString());
-      
-      await setDoc(docRef, {
-        ...productData,
-        isActive: productData.stock > 0, // Activar automáticamente basado en stock
-        lastUpdated: new Date().toISOString()
-      }, { merge: true });
-      
+      await apiFetch('/api/hospedajes', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: productData.name,
+          price: productData.price,
+          stock: productData.stock,
+          description: productData.description,
+          category: productData.category,
+        }),
+      });
       return true;
     } catch (error) {
       console.error('Error creando/actualizando producto:', error);
@@ -144,29 +106,8 @@ class InventoryService {
   // ✅ Obtener productos disponibles por categoría
   async getProductsByCategory(category: string): Promise<ProductInventory[]> {
     try {
-      // Consulta simplificada para evitar el error de índice compuesto
-      // Solo filtramos por categoría y luego filtramos por stock en memoria
-      const q = query(
-        collection(db, this.collectionName),
-        where('category', '==', category) // Solo filtrar por categoría
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const products: ProductInventory[] = [];
-      
-      querySnapshot.forEach((doc) => {
-        const productData = doc.data() as ProductInventory;
-        // Filtrar por stock en memoria (solo productos con stock > 0)
-        if (productData.stock > 0) {
-          products.push({
-            ...productData,
-            productId: parseInt(doc.id)
-          });
-        }
-      });
-      
-      console.log(`📦 Productos encontrados para categoría "${category}":`, products.length);
-      return products.sort((a, b) => a.productId - b.productId);
+      const all = await this.getAvailableProducts();
+      return all.filter((p) => p.category === category);
     } catch (error) {
       console.error(`Error obteniendo productos de categoría "${category}":`, error);
       return [];
@@ -176,22 +117,37 @@ class InventoryService {
   // ✅ Obtener solo productos disponibles (para clientes) - basado en stock
   async getAvailableProducts(): Promise<ProductInventory[]> {
     try {
-      const q = query(
-        collection(db, this.collectionName),
-        where('stock', '>', 0) // Solo productos con stock
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const products: ProductInventory[] = [];
-      
-      querySnapshot.forEach((doc) => {
-        products.push({
-          ...doc.data() as ProductInventory,
-          productId: parseInt(doc.id)
-        });
+      const rows = await apiFetch<any[]>('/api/hospedajes', { method: 'GET' });
+      const products: ProductInventory[] = rows.map((row) => {
+        const productId = row.productId ?? row.id ?? row.id_hospedaje;
+
+        // Solo mapeamos estados que coinciden con el inventario clásico
+        let status: ProductInventory['status'];
+        if (row.status === 'pending' || row.status === 'approved' || row.status === 'rejected') {
+          status = row.status;
+        }
+
+        return {
+          productId,
+          name: row.name ?? row.nombre ?? 'Hospedaje sin nombre',
+          stock: typeof row.stock === 'number' ? row.stock : 1,
+          price: Number(row.price ?? row.precio_base ?? 0),
+          images: [],
+          category: row.category ?? row.type ?? row.tipo_hospedaje,
+          isActive:
+            typeof row.isActive === 'boolean'
+              ? row.isActive
+              : row.estado === 'Activo' || row.status === 'Activo',
+          lastUpdated: new Date().toISOString(),
+          description: row.description ?? row.descripcion,
+          status,
+        };
       });
-      
-      return products.sort((a, b) => a.productId - b.productId);
+
+      // Para hospedajes, basta con que estén activos
+      return products
+        .filter((p) => p.isActive)
+        .sort((a, b) => a.productId - b.productId);
     } catch (error) {
       console.error('Error obteniendo productos disponibles:', error);
       return [];
@@ -201,9 +157,7 @@ class InventoryService {
   // ✅ Eliminar producto completamente (para admin)
   async deleteProduct(productId: number): Promise<boolean> {
     try {
-      const docRef = doc(db, this.collectionName, productId.toString());
-      await deleteDoc(docRef);
-      
+      await apiFetch(`/api/hospedajes/${productId}`, { method: 'DELETE' });
       return true;
     } catch (error) {
       console.error('Error eliminando producto:', error);
@@ -214,20 +168,85 @@ class InventoryService {
   // ✅ Obtener todos los productos del inventario (para admin)
   async getAllProducts(): Promise<ProductInventory[]> {
     try {
-      const querySnapshot = await getDocs(collection(db, this.collectionName));
-      const products: ProductInventory[] = [];
-      
-      querySnapshot.forEach((doc) => {
-        products.push({
-          ...doc.data() as ProductInventory,
-          productId: parseInt(doc.id)
-        });
-      });
-      
-      return products.sort((a, b) => a.productId - b.productId);
+      return this.getAvailableProducts();
     } catch (error) {
       console.error('Error obteniendo productos:', error);
       return [];
+    }
+  }
+
+  // ✅ Obtener producto específico por ID
+  async getProductById(productId: number): Promise<ProductInventory | null> {
+    try {
+      const rows = await apiFetch<any[]>(`/api/hospedajes`, { method: 'GET' });
+      const row = rows.find(
+        (r) => r.productId === productId || r.id === productId || r.id_hospedaje === productId,
+      );
+      if (!row) return null;
+
+      let status: ProductInventory['status'];
+      if (row.status === 'pending' || row.status === 'approved' || row.status === 'rejected') {
+        status = row.status;
+      }
+
+      return {
+        productId: row.productId ?? row.id ?? row.id_hospedaje,
+        name: row.name ?? row.nombre ?? 'Hospedaje sin nombre',
+        stock: typeof row.stock === 'number' ? row.stock : 1,
+        price: Number(row.price ?? row.precio_base ?? 0),
+        images: [],
+        category: row.category ?? row.type ?? row.tipo_hospedaje,
+        isActive:
+          typeof row.isActive === 'boolean'
+            ? row.isActive
+            : row.estado === 'Activo' || row.status === 'Activo',
+        lastUpdated: new Date().toISOString(),
+        description: row.description ?? row.descripcion,
+        status,
+      };
+    } catch (error) {
+      console.error('Error obteniendo producto por ID:', error);
+      return null;
+    }
+  }
+
+  // ✅ Obtener propiedades por propietario
+  async getProductsByOwner(ownerEmail: string): Promise<ProductInventory[]> {
+    if (!ownerEmail) return [];
+
+    try {
+      const rows = await apiFetch<any[]>('/api/hospedajes/owner/me', { method: 'GET' });
+      const products: ProductInventory[] = rows.map((row) => ({
+        productId: row.productId ?? row.id ?? row.id_hospedaje,
+        name: row.name ?? row.nombre,
+        stock: typeof row.stock === 'number' ? row.stock : 1,
+        price: Number(row.price ?? row.precio_base ?? 0),
+        images: [],
+        category: row.category ?? row.type ?? row.tipo_hospedaje,
+        isActive: typeof row.isActive === 'boolean' ? row.isActive : row.estado === 'Activo',
+        lastUpdated: new Date().toISOString(),
+        description: row.description ?? row.descripcion,
+        status: row.status ?? row.estado,
+      }));
+
+      return products.sort((a, b) => a.productId - b.productId);
+    } catch (error) {
+      console.error('Error obteniendo propiedades del dueño:', error);
+      return [];
+    }
+  }
+
+  // ✅ Actualizar estatus de aprobación
+  async updateProductStatus(productId: number, status: 'pending' | 'approved' | 'rejected'): Promise<boolean> {
+    try {
+      await apiFetch(`/api/hospedajes/${productId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+      return true;
+    } catch (error) {
+      console.error('Error actualizando estatus de propiedad:', error);
+      return false;
     }
   }
 

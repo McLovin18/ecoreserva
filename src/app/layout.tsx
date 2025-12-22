@@ -20,32 +20,27 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://tienda-papers.vercel.app/'),
+  metadataBase: new URL(''),
   title: {
-    default: "Tiffanys - Tienda de Suministros y variedades",
-    template: "%s | Tiffany's"
+    default: "EcoReserva - Reservas de departamentos y hospedajes",
+    template: "%s | EcoReserva"
   },
-  description: "Descubre los mejores suministros de oficina en Tiffany's, cosmeticos, productos orgánicos y mucho más.",
+  description: "EcoReserva es una plataforma para buscar y reservar departamentos y hospedajes de forma segura, sencilla y sostenible.",
   keywords: [
-    "tienda de suministros de oficina",
-    "papelería online",
-    "material de oficina",
-    "accesorios de escritorio",
-    "organización",
-    "escritorio",
-    "papelería",
-    "material de oficina",
-    "accesorios de escritorio",
-    "organización",
-    "cosmeticos",
-    "bisuteria"
+    "EcoReserva",
+    "reservas de departamentos",
+    "hospedaje sostenible",
+    "alojamiento ecológico",
+    "departamentos turísticos",
+    "arriendo por temporada",
+
   ],
-  authors: [{ name: "Nexel" }],
-  creator: "Nexel",
-  publisher: "Nexel",
-  applicationName: "Tiffany's",
-  category: "E-commerce",
-  classification: "Office supplies and many more",
+  authors: [{ name: "EcoReserva" }],
+  creator: "EcoReserva",
+  publisher: "EcoReserva",
+  applicationName: "EcoReserva",
+  category: "Reservas y turismo",
+  classification: "Plataforma de reservas de departamentos y hospedajes",
   manifest: '/manifest.json',
   robots: {
     index: true,
@@ -61,26 +56,26 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "es_ES",
-    url: "https://tienda-papers.vercel.app",
-    siteName: "Tiffany's",
-    title: "Tiffanys - Tienda de Suministros y variedades",
-    description: "Descubre los mejores suministros de oficina en Tiffany's. Hechos de la mejor calidad para tu espacio de trabajo.",
+    url: "https://ecoreserva.vercel.app",
+    siteName: "EcoReserva",
+    title: "EcoReserva - Reservas de departamentos y hospedajes",
+    description: "Reserva departamentos y hospedajes ecológicos en destinos únicos con EcoReserva.",
     images: [
       {
         url: "/logoShop1.png",
         width: 1200,
         height: 630,
-        alt: "Tiffanys - Tienda de Suministros y variedades",
+        alt: "EcoReserva - Plataforma de reservas de departamentos y hospedajes",
         type: "image/png",
       }
     ],
   },
   twitter: {
     card: "summary_large_image",
-    site: "@tienda-papers",
-    creator: "@tiffanys",
-    title: "Tiffanys - Tienda de Suministros y variedades",
-    description: "Descubre los mejores suministros en Tiffany's. Hechos de la mejor calidad para tu espacio de trabajo, y mucho más.",
+    site: "@ecoreserva",
+    creator: "@ecoreserva",
+    title: "EcoReserva - Reservas de departamentos y hospedajes",
+    description: "Encuentra y reserva departamentos y hospedajes sostenibles con EcoReserva.",
     images: ["/logoShop1.png"],
   },
   verification: {
@@ -89,18 +84,18 @@ export const metadata: Metadata = {
     // yahoo: "yahoo-site-verification-code",
   },
   alternates: {
-    canonical: "https://tienda-papers.vercel.app/",
+    canonical: "https://ecoreserva.vercel.app/",
     languages: {
-      'es-ES': 'https://tienda-papers.vercel.app/',
+      'es-ES': 'https://ecoreserva.vercel.app/',
     },
   },
   other: {
-    'theme-color': '#000000',
+    'theme-color': '#0B7285',
     'color-scheme': 'light',
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'default',
-    'apple-mobile-web-app-title': 'Tyffanys',
+    'apple-mobile-web-app-title': 'EcoReserva',
     'format-detection': 'telephone=no',
   },
 };
@@ -109,7 +104,7 @@ export const viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#000000',
+  themeColor: '#0B7285',
 };
 
 export default function RootLayout({
@@ -126,10 +121,13 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="16x16" href="/logoShop1.png" />
         <link rel="shortcut icon" href="/logoShop1.png" type="image/png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/logoShop1.png" />
-        <meta name="theme-color" content="#000000" />
-        <meta name="msapplication-TileColor" content="#000000" />
+        <meta name="theme-color" content="#0B7285" />
+        <meta name="msapplication-TileColor" content="#0B7285" />
         <meta name="msapplication-TileImage" content="/logoShop1.png" />
-        <meta name="description" content= "Descubre los mejores suministros de oficina en Tiffany's, cosmeticos, productos orgánicos y mucho más" />
+        <meta
+          name="description"
+          content="Busca y reserva departamentos y hospedajes sostenibles en EcoReserva. Encuentra tu próximo destino con filtros por ubicación, fechas y número de huéspedes."
+        />
 
       </head>
       <body  className={`${geistSans.variable} ${geistMono.variable}`}>

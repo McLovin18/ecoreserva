@@ -1,152 +1,34 @@
 /**
- * 🔒 UTILIDADES DE SEGURIDAD
- * Sistema centralizado de validación, sanitización y protección
+ * 🔒 UTILIDADES DE SEGURIDAD (SIN FIREBASE)
+ * Validación y sanitización reutilizable en el frontend.
  */
-
-import { auth, db } from './firebase';
-import { doc, getDoc } from 'firebase/firestore';
 
 // ✅ VALIDACIÓN DE ENTRADA
 export class InputValidator {
-  // Validar email
   static isValidEmail(email: string): boolean {
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    return emailRegex.test(email.trim());
+    if (!email) return false;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
-  // Validar contraseña fuerte
-  static isValidPassword(password: string): { valid: boolean; errors: string[] } {
-    const errors: string[] = [];
-    if (password.length < 8) {
-      errors.push('La contraseña debe tener al menos 8 caracteres');
-    }
-    if (!/[A-Z]/.test(password)) {
-      errors.push('Debe contener al menos una mayúscula');
-    }
-    if (!/[a-z]/.test(password)) {
-      errors.push('Debe contener al menos una minúscula');
-    }
-    if (!/[0-9]/.test(password)) {
-      errors.push('Debe contener al menos un número');
-    }
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      errors.push('Debe contener al menos un carácter especial');
-    }
-
-    return { valid: errors.length === 0, errors };
+  static isValidPassword(password: string): boolean {
+    if (!password) return false;
+    return password.length >= 6;
   }
 
-  // Validar nombre de usuario
   static isValidName(name: string): boolean {
-    const trimmedName = name.trim();
-    return trimmedName.length >= 2 && trimmedName.length <= 50 && /^[a-zA-ZÀ-ÿ\s]+$/.test(trimmedName);
-  }
-
-  // Validar comentario
-  static isValidComment(comment: string): boolean {
-    const trimmedComment = comment.trim();
-    return trimmedComment.length >= 10 && trimmedComment.length <= 500;
-  }
-
-  // Validar teléfono
-  static isValidPhone(phone: string): boolean {
-    const phoneRegex = /^[+]?[\d\s\-\(\)]{10,15}$/;
-    return phoneRegex.test(phone.trim());
+    if (!name) return false;
+    return name.trim().length >= 2;
   }
 }
 
-// ✅ SANITIZACIÓN DE DATOS
+// ✅ SANITIZACIÓN DE DATOS BÁSICA (compatibilidad con SecureLogin)
 export class DataSanitizer {
-  // Limpiar HTML y scripts
-  static sanitizeHtml(input: string): string {
-    return input
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/<[^>]*>/g, '')
-      .trim();
-  }
-
-  // Sanitizar texto general
-  static sanitizeText(input: string): string {
-    return input
-      .replace(/[<>\"'&]/g, (match) => {
-        const map: { [key: string]: string } = {
-          '<': '&lt;',
-          '>': '&gt;',
-          '"': '&quot;',
-          "'": '&#x27;',
-          '&': '&amp;'
-        };
-        return map[match];
-      })
-      .trim();
-  }
-
-  // Sanitizar número de teléfono
-  static sanitizePhone(phone: string): string {
-    return phone.replace(/[^\d+\-\(\)\s]/g, '');
-  }
-
-  // Sanitizar dirección
-  static sanitizeAddress(address: string): string {
-    return this.sanitizeText(address).substring(0, 200);
-  }
-}
-
-// ✅ CONTROL DE ACCESO Y ROLES
-export class AccessControl {
-  // Verificar si el usuario es admin
-  static async isAdmin(userEmail?: string): Promise<boolean> {
-    if (!auth.currentUser) return false;
-    
-    const adminEmails = [
-      'hectorcobea03@gmail.com',
-      'tiffanysvariedades@gmail.com',
-      'lucilaaquino79@gmail.com'
-    ];
-    
-    const email = userEmail || auth.currentUser.email;
-    return email ? adminEmails.includes(email.toLowerCase()) : false;
-  }
-
-  // Verificar si el usuario es delivery - SISTEMA DINÁMICO
-  static async isDelivery(userEmail?: string): Promise<boolean> {
-    if (!auth.currentUser) return false;
-    
-    try {
-      const email = userEmail || auth.currentUser.email;
-      if (!email) return false;
-
-      // 🆕 CONSULTAR FIREBASE EN LUGAR DE LISTA HARDCODED
-      const deliveryUserRef = doc(db, 'deliveryUsers', email.toLowerCase());
-      const deliveryUserSnap = await getDoc(deliveryUserRef);
-      
-      // Verificar si existe y está activo
-      if (deliveryUserSnap.exists()) {
-        const deliveryData = deliveryUserSnap.data();
-        return deliveryData?.active === true;
-      }
-      
-      return false;
-    } catch (error) {
-      SecureLogger.error('Error checking delivery status', error);
-      return false;
-    }
-  }
-
-  // Verificar si el usuario puede acceder a un recurso
-  static async canAccessResource(resourceUserId: string): Promise<boolean> {
-    if (!auth.currentUser) return false;
-    
-    // Admin puede acceder a todo
-    if (await this.isAdmin()) return true;
-    
-    // Usuario solo puede acceder a sus propios recursos
-    return auth.currentUser.uid === resourceUserId;
-  }
-
-  // Verificar autenticación
-  static isAuthenticated(): boolean {
-    return !!auth.currentUser;
+  // Normaliza y recorta texto de formularios para evitar espacios raros
+  static sanitizeText(value: string): string {
+    if (!value) return "";
+    // Eliminar caracteres de control y recortar espacios extra
+    const withoutControl = value.replace(/[\u0000-\u001F\u007F]/g, "");
+    return withoutControl.trim();
   }
 }
 
@@ -157,7 +39,7 @@ export class RateLimiter {
   // Verificar rate limit para una acción
   static checkRateLimit(action: string, maxAttempts: number = 5, windowMs: number = 60000): boolean {
     const now = Date.now();
-    const key = `${action}_${auth.currentUser?.uid || 'anonymous'}`;
+    const key = `${action}_anonymous`;
     
     const attempt = this.attempts.get(key);
     
@@ -224,7 +106,7 @@ export class SecureLogger {
     const securityLog = {
       event,
       timestamp: new Date().toISOString(),
-      user: auth.currentUser?.uid || 'anonymous',
+      user: 'anonymous',
       details: details || {}
     };
     
@@ -280,24 +162,16 @@ export class BasicEncryption {
 
 // ✅ VALIDADOR DE SESIÓN
 export class SessionValidator {
-  // Verificar que la sesión sea válida
+  // Verificar que la sesión sea válida (stub sin Firebase)
   static async validateSession(): Promise<boolean> {
-    if (!auth.currentUser) return false;
-    
-    try {
-      // Refrescar token
-      await auth.currentUser.getIdToken(true);
-      return true;
-    } catch (error) {
-      SecureLogger.security('Invalid session detected', { error });
-      return false;
-    }
+    // En EcoReserva la validación de sesión se maneja en el backend
+    // mediante JWT, así que este método solo se mantiene como stub.
+    return true;
   }
 
   // Verificar integridad de datos del usuario
   static validateUserData(userData: any): boolean {
     if (!userData) return false;
-    
     const required = ['uid', 'email'];
     return required.every(field => userData[field]);
   }

@@ -1,10 +1,8 @@
 'use client';
 
-import { db } from '../utils/firebase';
-import { collection, addDoc, getDoc, getDocs, query, orderBy, deleteDoc, doc, setDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore';
-import { auth } from '../utils/firebase';
-import { SecureLogger } from '../utils/security';
-import { inventoryService } from './inventoryService';
+// Servicio legacy de compras basado en Firestore.
+// En EcoReserva (reservas de hospedaje) ya no se usa flujo de compras,
+// así que todas las funciones aquí quedan como no operativas y SIN Firebase.
 
 // Definición de tipos
 export interface PurchaseItem {
@@ -80,82 +78,10 @@ export const savePurchase = async (
   userName?: string,
   userEmail?: string
 ): Promise<string> => {
-  try {
-    validatePurchase(purchase);
-
-    const currentDate = new Date();
-    const dateString = purchase.date || currentDate.toISOString();
-    const dayKey = currentDate.toISOString().split('T')[0];
-
-    const currentUser = auth.currentUser;
-    const isGuest = !currentUser;
-    const finalUserId = isGuest ? 'guest' : purchase.userId;
-
-    // Reducir inventario
-    await inventoryService.processOrder(
-      purchase.items.map(item => ({
-        productId: parseInt(item.id),
-        quantity: item.quantity
-      }))
-    );
-
-    // Guardar compra principal
-    const purchaseRef = isGuest
-      ? collection(db, 'guestPurchases')
-      : collection(db, `users/${purchase.userId}/purchases`);
-
-    const tempDocRef = doc(purchaseRef);
-    const purchaseId = tempDocRef.id;
-
-    await setDoc(tempDocRef, {
-      ...purchase,
-      userId: finalUserId,
-      guestCheckout: isGuest,
-      date: dateString,
-      purchaseId
-    });
-
-    // Guardar en dailyOrders solo si hay usuario autenticado
-    if (!isGuest) {
-      try {
-        const dailyOrderRef = doc(db, `dailyOrders/${dayKey}`);
-
-        const orderData: DailyOrder = {
-          id: purchaseId,
-          userId: finalUserId,
-          guestCheckout: isGuest,
-          userName: userName || (userEmail ? userEmail.split('@')[0] : undefined),
-          userEmail: userEmail || undefined,
-          date: dateString,
-          items: purchase.items,
-          total: purchase.total,
-          orderTime: currentDate.toLocaleTimeString('es-ES', {
-            hour: '2-digit',
-            minute: '2-digit'
-          })
-        };
-
-        await setDoc(
-          dailyOrderRef,
-          {
-            orders: arrayUnion(orderData),
-            totalOrdersCount: increment(1),
-            totalDayAmount: increment(purchase.total),
-            lastUpdated: currentDate.toISOString()
-          },
-          { merge: true }
-        );
-      } catch (dailyError) {
-        console.warn('No se pudo guardar en dailyOrders:', dailyError);
-      }
-    }
-
-    return purchaseId;
-  } catch (error: any) {
-    console.error('Error en savePurchase:', error);
-    // Lanzar un mensaje más específico para el front
-    throw new Error(error.message || 'Error desconocido al guardar la compra');
-  }
+  // En el nuevo modelo de reservas (SQL Server) no se registra compras.
+  // Si alguna parte del front llama a esto, devolvemos un error claro.
+  validatePurchase(purchase);
+  throw new Error('El flujo de compras con Firestore ha sido deshabilitado. Usa reservas de hospedaje.');
 };
 
 
@@ -166,48 +92,15 @@ export const savePurchase = async (
  * Obtiene todas las compras de un usuario desde la subcolección
  */
 export const getUserPurchases = async (userId: string): Promise<Purchase[]> => {
-  try {
-    const q = query(
-      collection(db, `users/${userId}/purchases`),
-      orderBy('date', 'desc')
-    );
-    const querySnapshot = await getDocs(q);
-    const purchases: Purchase[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data() as Omit<Purchase, 'id'>;
-      purchases.push({
-        id: doc.id, // Usar el ID del documento como ID principal
-        purchaseId: data.purchaseId || doc.id, // Mantener purchaseId si existe
-        ...data,
-      });
-    });
-    return purchases;
-  } catch (error) {
-    console.error('Error al obtener las compras del usuario:', error);
-    throw error;
-  }
+  console.warn('getUserPurchases llamado en modo legacy. Retornando arreglo vacío.');
+  return [];
 };
 
 /**
  * Elimina todas las compras de un usuario
  */
 export const clearUserPurchases = async (userId: string): Promise<void> => {
-  try {
-    const q = query(
-      collection(db, `users/${userId}/purchases`)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    
-    const deletePromises = querySnapshot.docs.map((doc) => {
-      return deleteDoc(doc.ref);
-    });
-    
-    await Promise.all(deletePromises);
-  } catch (error) {
-    console.error('Error al eliminar las compras del usuario:', error);
-    throw error;
-  }
+  console.warn('clearUserPurchases llamado en modo legacy. No realiza ninguna acción.');
 };
 
 /**
@@ -227,26 +120,17 @@ export const addFavourite = async (userId: string, product: {
   image: string;
   description?: string;
 }) => {
-  if (!userId) return;
-  if (!product.image) {
-    product.image = "/images/product1.svg"; // imagen fallback
-  }
-  const favRef = doc(db, `users/${userId}/favourites/${product.id}`);
-  await setDoc(favRef, product);
+  console.warn('addFavourite (Firestore) deshabilitado en modo SQL. Usa favoritos locales.');
 };
 
 
 export const removeFavourite = async (userId: string, productId: string | number) => {
-  if (!userId || !productId) return;
-  const favRef = doc(db, `users/${userId}/favourites/${productId}`);
-  await deleteDoc(favRef);
+  console.warn('removeFavourite (Firestore) deshabilitado en modo SQL.');
 };
 
 export const getUserFavourites = async (userId: string) => {
-  if (!userId) return [];
-  const favsCol = collection(db, `users/${userId}/favourites`);
-  const snapshot = await getDocs(favsCol); // 🔥 siempre lee del servidor
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  console.warn('getUserFavourites (Firestore) deshabilitado en modo SQL.');
+  return [];
 };
 
 // --- COMENTARIOS DE PRODUCTO EN FIRESTORE ---
@@ -265,22 +149,8 @@ export const addProductComment = async (
     photoURL?: string
   }
 ) => {
-  if (!productId || !comment?.text) throw new Error("productId y comentario requeridos");
-  
-  // ✅ VERIFICAR AUTENTICACIÓN Y AGREGAR userId
-  const currentUser = auth.currentUser;
-  if (!currentUser) {
-    throw new Error('Usuario no autenticado');
-  }
-  
-  // ✅ Agregar userId al comentario
-  const commentWithUserId = {
-    ...comment,
-    userId: currentUser.uid
-  };
-  
-  const commentsCol = collection(db, `products/${productId}/comments`);
-  await addDoc(commentsCol, commentWithUserId);
+  console.warn('addProductComment (Firestore) deshabilitado en modo SQL.');
+  return;
 };
 
 
@@ -290,31 +160,12 @@ export const addProductComment = async (
  * Obtiene todos los comentarios de un producto desde Firestore, ordenados por fecha descendente
  */
 export const getProductComments = async (productId: string | number) => {
-  if (!productId) return [];
-  const commentsCol = collection(db, `products/${productId}/comments`);
-  const q = query(commentsCol, orderBy('date', 'desc'));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })); // ✅ AÑADIR doc.id
+  console.warn('getProductComments (Firestore) deshabilitado en modo SQL.');
+  return [];
 };
 
 export const updateProductRating = async (productId: string | number, averageRating: number) => {
-  try {
-    const productRef = doc(db, "products", String(productId));
-    
-    // Intentar actualizar el documento
-    await updateDoc(productRef, { averageRating });
-  } catch (error: any) {
-    // Si el documento no existe, crearlo con el rating
-    if (error.code === 'not-found') {
-      const productRef = doc(db, "products", String(productId));
-      await setDoc(productRef, { 
-        id: String(productId),
-        averageRating 
-      }, { merge: true });
-    } else {
-      console.error('❌ Error al actualizar rating del producto:', error);
-    }
-  }
+  console.warn('updateProductRating (Firestore) deshabilitado en modo SQL.');
 };
 
 
@@ -323,45 +174,8 @@ export const addReplyToComment = async (
   commentId: string,
   reply: { name: string; text: string; date: string }
 ): Promise<boolean> => {
-  try {
-    if (!productId || !commentId) {
-      console.error("❌ Falta productId o commentId en addReplyToComment");
-      return false;
-    }
-
-    console.log('📝 Intentando agregar respuesta:', {
-      productId,
-      commentId,
-      replyText: reply.text.substring(0, 50) + '...'
-    });
-
-    // Verificar que Firebase esté inicializado
-    if (!db) {
-      return false;
-    }
-
-    const commentRef = doc(db, `products/${productId}/comments`, commentId);
-    
-    const snapshot = await getDoc(commentRef);
-    if (!snapshot.exists()) {
-      return false;
-    }
-
-    const data = snapshot.data();
-    const updatedReplies = [...(data.replies || []), reply];
-    await updateDoc(commentRef, { replies: updatedReplies });
-    
-    return true;
-    
-  } catch (error) {
-    // Mostrar información específica del error
-    if (error instanceof Error) {
-      console.error("Mensaje del error:", error.message);
-      console.error("Código del error:", (error as any).code);
-    }
-    
-    return false;
-  }
+  console.warn('addReplyToComment (Firestore) deshabilitado en modo SQL.');
+  return false;
 };
 
 // --- FUNCIONES PARA GESTIÓN DIARIA DE PEDIDOS ---
@@ -370,79 +184,31 @@ export const addReplyToComment = async (
  * Obtiene todos los pedidos de un día específico
  */
 export const getDailyOrders = async (date: string): Promise<DailyOrdersDocument | null> => {
-  try {
-    const dailyOrderRef = doc(db, `dailyOrders/${date}`);
-    const snapshot = await getDoc(dailyOrderRef);
-    
-    if (snapshot.exists()) {
-      return snapshot.data() as DailyOrdersDocument;
-    }
-    return null;
-  } catch (error) {
-    console.error('Error al obtener pedidos del día:', error);
-    throw error;
-  }
+  console.warn('getDailyOrders (Firestore) deshabilitado en modo SQL.');
+  return null;
 };
 
 /**
  * Obtiene todos los días que tienen pedidos, ordenados por fecha descendente
  */
 export const getAllOrderDays = async (): Promise<DailyOrdersDocument[]> => {
-  try {
-    const q = query(
-      collection(db, 'dailyOrders'),
-      orderBy('date', 'desc')
-    );
-    const querySnapshot = await getDocs(q);
-    const days: DailyOrdersDocument[] = [];
-    
-    querySnapshot.forEach((doc) => {
-      const data = doc.data() as DailyOrdersDocument;
-      days.push(data);
-    });
-    
-    return days;
-  } catch (error) {
-    console.error('❌ Error al obtener días con pedidos:', error);
-    throw error;
-  }
+  console.warn('getAllOrderDays (Firestore) deshabilitado en modo SQL.');
+  return [];
 };
 
 /**
  * Obtiene estadísticas de pedidos por rango de fechas
  */
 export const getOrdersStatistics = async (startDate: string, endDate: string) => {
-  try {
-    const q = query(
-      collection(db, 'dailyOrders'),
-      orderBy('date', 'asc')
-    );
-    const querySnapshot = await getDocs(q);
-    
-    const filteredDays: DailyOrdersDocument[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data() as DailyOrdersDocument;
-      if (data.date >= startDate && data.date <= endDate) {
-        filteredDays.push(data);
-      }
-    });
-    
-    const totalOrders = filteredDays.reduce((sum, day) => sum + day.totalOrdersCount, 0);
-    const totalAmount = filteredDays.reduce((sum, day) => sum + day.totalDayAmount, 0);
-    const averageOrderValue = totalOrders > 0 ? totalAmount / totalOrders : 0;
-    
-    return {
-      totalDays: filteredDays.length,
-      totalOrders,
-      totalAmount,
-      averageOrderValue,
-      averageOrdersPerDay: filteredDays.length > 0 ? totalOrders / filteredDays.length : 0,
-      days: filteredDays
-    };
-  } catch (error) {
-    console.error('Error al obtener estadísticas:', error);
-    throw error;
-  }
+  console.warn('getOrdersStatistics (Firestore) deshabilitado en modo SQL.');
+  return {
+    totalDays: 0,
+    totalOrders: 0,
+    totalAmount: 0,
+    averageOrderValue: 0,
+    averageOrdersPerDay: 0,
+    days: [] as DailyOrdersDocument[]
+  };
 };
 
 /**

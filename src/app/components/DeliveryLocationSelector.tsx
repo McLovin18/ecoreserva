@@ -76,7 +76,7 @@ export default function DeliveryLocationSelector({ onLocationChange, disabled }:
       <Card.Header className="bg-primary text-white">
         <h6 className="mb-0">
           <i className="bi bi-geo-alt-fill me-2"></i>
-          Ubicación de Entrega
+          Datos de ubicación del huésped
         </h6>
       </Card.Header>
       <Card.Body>
@@ -86,7 +86,7 @@ export default function DeliveryLocationSelector({ onLocationChange, disabled }:
             <Form.Group>
               <Form.Label className="fw-bold small">
                 <i className="bi bi-building me-1"></i>
-                Ciudad *
+                Ciudad de estadía *
               </Form.Label>
               <Form.Select
                 value={selectedCity}
@@ -109,7 +109,7 @@ export default function DeliveryLocationSelector({ onLocationChange, disabled }:
             <Form.Group>
               <Form.Label className="fw-bold small">
                 <i className="bi bi-map me-1"></i>
-                Zona *
+                Sector / barrio *
               </Form.Label>
               <Form.Select
                 value={selectedZone}
@@ -134,7 +134,7 @@ export default function DeliveryLocationSelector({ onLocationChange, disabled }:
             <Form.Group>
               <Form.Label className="fw-bold small">
                 <i className="bi bi-phone me-1"></i>
-                Número de Teléfono *
+                Teléfono de contacto *
               </Form.Label>
               <Form.Control
                 type="tel"
@@ -162,7 +162,7 @@ export default function DeliveryLocationSelector({ onLocationChange, disabled }:
               <Form.Group>
                 <Form.Label className="fw-bold small">
                   <i className="bi bi-house-door me-1"></i>
-                  Dirección específica (opcional)
+                  Referencia del departamento (opcional)
                 </Form.Label>
                 <Form.Control
                   type="text"
@@ -173,7 +173,7 @@ export default function DeliveryLocationSelector({ onLocationChange, disabled }:
                   size="sm"
                 />
                 <Form.Text className="text-muted">
-                  Ayuda al repartidor a encontrar tu ubicación más fácilmente
+                  Ayuda a ubicar mejor el departamento reservado
                 </Form.Text>
               </Form.Group>
             </div>
@@ -186,7 +186,7 @@ export default function DeliveryLocationSelector({ onLocationChange, disabled }:
             <div className="d-flex align-items-center">
               <i className="bi bi-check-circle-fill me-2"></i>
               <div>
-                <strong>Entrega programada para:</strong><br />
+                <strong>Reserva registrada para:</strong><br />
                 <span className="text-primary">
                   {selectedZone}, {selectedCity}
                   {address && (

@@ -341,7 +341,7 @@
 }
 
 
-/*Botones para el delivery*/
+/* Botones del panel de administración */
 .btn-admin {
   background-color: transparent !important;
   color: var(--cosmetic-terciary) !important;

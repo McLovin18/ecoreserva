@@ -16,12 +16,12 @@ export default function WhatsAppButton({ cartItems, total, deliveryLocation, dis
   const WHATSAPP_NUMBER = "593987275333"; 
   
   const generateWhatsAppMessage = () => {
-    let message = "¡Hola! Sra Tiffanys Me interesa hacer un pedido desde tu tienda online:\n\n";
+    let message = "¡Hola! Me interesa hacer una *reserva de departamento* desde tu sitio web:\n\n";
     
-    // Agregar productos
-    message += "*PRODUCTOS SELECCIONADOS:*\n";
+    // Agregar departamentos seleccionados
+    message += "*DEPARTAMENTOS SELECCIONADOS:*\n";
     cartItems.forEach((item, index) => {
-      message += `${index + 1}. *${item.name || item.title || 'Producto'}*\n`;
+      message += `${index + 1}. *${item.name || item.title || 'Departamento'}*\n`;
       if (item.selectedSize) message += `    Talla: ${item.selectedSize}\n`;
       if (item.selectedColor) message += `    Color: ${item.selectedColor}\n`;
       message += `    Cantidad: ${item.quantity}\n`;
@@ -29,24 +29,24 @@ export default function WhatsAppButton({ cartItems, total, deliveryLocation, dis
     });
     
     // Agregar total
-    message += ` *TOTAL DEL PEDIDO: $${total.toFixed(2)}*\n\n`;
+    message += ` *TOTAL ESTIMADO DE LA RESERVA: $${total.toFixed(2)}*\n\n`;
     
-    // Agregar información de entrega
+    // Agregar información de ubicación/contacto del huésped
     if (deliveryLocation) {
-      message += "📍 *INFORMACIÓN DE ENTREGA:*\n";
+      message += "📍 *DATOS DE UBICACIÓN DEL HUÉSPED:*\n";
       message += `🏙️ Ciudad: ${deliveryLocation.city}\n`;
-      message += `📍 Zona: ${deliveryLocation.zone}\n`;
+      message += `📍 Sector / zona: ${deliveryLocation.zone}\n`;
       if (deliveryLocation.phone) {
         message += `📞 Teléfono: ${deliveryLocation.phone}\n`;
       }
       if (deliveryLocation.address) {
-        message += `🏠 Dirección: ${deliveryLocation.address}\n`;
+        message += `🏠 Referencia del departamento: ${deliveryLocation.address}\n`;
       }
       message += "\n";
     }
     
-    message += "¿Podrías confirmarme la disponibilidad de los productos y los métodos de pago disponibles? 😊\n\n";
-    message += "Prefiero coordinar el pago y entrega directamente contigo. ¡Gracias! 🙌";
+    message += "¿Podrías confirmarme la *disponibilidad* de estos departamentos y los métodos de pago para la reserva? 😊\n\n";
+    message += "Prefiero coordinar la reserva y el pago directamente contigo. ¡Gracias! 🙌";
     
     return encodeURIComponent(message);
   };
@@ -87,7 +87,7 @@ export default function WhatsAppButton({ cartItems, total, deliveryLocation, dis
         }}
       >
         <i className="bi bi-whatsapp me-2" style={{ fontSize: '1.2rem' }}></i>
-        Comprar por WhatsApp
+        Reservar por WhatsApp
       </Button>
       
       <div className="text-center mb-3">

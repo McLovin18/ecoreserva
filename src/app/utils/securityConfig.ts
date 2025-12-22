@@ -33,7 +33,8 @@ export const RATE_LIMITS = {
 export const AUTH_REQUIREMENTS = {
   EMAIL_VERIFICATION_REQUIRED: true,
   MIN_PASSWORD_STRENGTH: 'MEDIUM', // puedes mapear con SECURITY_PATTERNS.PASSWORD_STRENGTH
-  ALLOWED_ROLES: ['ADMIN', 'USER', 'DELIVERY'],
+  // En EcoReserva solo usamos roles de administrador, anfitrión y turista (cliente)
+  ALLOWED_ROLES: ['ADMIN', 'OWNER', 'CLIENT'],
 };
 
 
@@ -115,17 +116,8 @@ export const SECURITY_ROLES = {
       'read_all_users',
       'manage_products',
       'manage_orders',
-      'assign_delivery',
       'view_analytics',
       'manage_system'
-    ]
-  },
-  DELIVERY: {
-    emails: ['hwcobena@espol.edu.ec', 'nexel2024@outlook.com'],
-    permissions: [
-      'view_assigned_orders',
-      'update_delivery_status',
-      'add_delivery_notes'
     ]
   },
   USER: {

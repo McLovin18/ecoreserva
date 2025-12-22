@@ -1,39 +1,39 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import {
-  User,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  sendEmailVerification,
-  signInWithPopup,
-  UserCredential,
-  updateProfile,
-} from 'firebase/auth';
-import { auth, googleProvider, db } from '../utils/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from "uuid";
+import { apiFetch } from '../utils/apiClient';
+
+type AppRole = 'admin' | 'owner' | 'client';
+
+interface AuthUser {
+  id: number;
+  email: string;
+  nombre?: string;
+  apellido?: string;
+  displayName?: string;
+  role?: AppRole;
+}
 
 interface UserData {
   email: string;
-  role?: 'admin' | 'delivery' | 'client';
-  isDelivery?: boolean;
-  deliveryZones?: string[];
+  role?: AppRole;
   displayName?: string;
+  owner?: boolean;
+  ownedPropertyIds?: number[];
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   userData: UserData | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<UserCredential>;
-  register: (email: string, password: string, name?: string) => Promise<UserCredential>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name?: string, role?: 'owner' | 'client') => Promise<void>;
   logout: () => Promise<void>;
-  loginWithGoogle: () => Promise<UserCredential>;
+  loginWithGoogle: () => Promise<void>;
   updateUserProfile: (displayName?: string, photoURL?: string) => Promise<void>;
-  isDelivery: boolean;
+  isOwner: boolean;
+  anonymousId: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -48,7 +48,7 @@ export const useAuth = () => {
 
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [justRegistered, setJustRegistered] = useState(false);
@@ -56,105 +56,74 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   
 
 
-  // Helper para cargar datos del usuario desde Firestore
-  const loadUserData = async (firebaseUser: User) => {
-    try {
-      // Solo intentar Firestore si el usuario está autenticado
-      if (!firebaseUser.email) {
-        throw new Error('Usuario sin email');
-      }
-      
-      const userDocRef = doc(db, 'users', firebaseUser.email);
-      const userDoc = await getDoc(userDocRef);
-      
-      let data: UserData = {
-        email: firebaseUser.email,
-        displayName: firebaseUser.displayName || undefined
-      };
-      
-      if (userDoc.exists()) {
-        data = { ...data, ...userDoc.data() } as UserData;
-      }
-      
-      // Guardar en localStorage
-      localStorage.setItem('user', JSON.stringify(data));
-      setUserData(data);
-      
-      console.log('👤 Usuario cargado desde Firestore:', data);
-      
-    } catch (error) {
-      console.log('⚠️ Error cargando desde Firestore, usando datos básicos:', (error as Error).message || error);
-      
-      // Fallback: usar solo datos de Firebase Auth
-      const basicData: UserData = {
-        email: firebaseUser.email!,
-        displayName: firebaseUser.displayName || undefined
-      };
-      
-      // 🔧 VERIFICAR SI YA HAY DATOS EN LOCALSTORAGE CON ROL
-      const existingData = localStorage.getItem('user');
-      if (existingData) {
-        try {
-          const parsedData = JSON.parse(existingData);
-          if (parsedData.role) {
-            // Mantener rol existente si ya está definido
-            basicData.role = parsedData.role;
-            basicData.isDelivery = parsedData.isDelivery;
-            basicData.deliveryZones = parsedData.deliveryZones;
-            console.log('👤 Manteniendo rol desde localStorage:', basicData);
-          }
-        } catch (parseError) {
-          console.log('Error parseando localStorage existente');
-        }
-      }
-      
-      localStorage.setItem('user', JSON.stringify(basicData));
-      setUserData(basicData);
-    }
-  };
-
+  // Cargar usuario desde el backend (Node + SQL) usando el token guardado
   useEffect(() => {
-    // ✅ Evita el error si auth es null (por variables de entorno mal configuradas)
-    if (!auth) {
-      console.error("⚠️ Firebase Auth no está inicializado. Revisa tus variables de entorno.");
-      console.error("Variables de entorno disponibles:", {
-        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'Configurada' : 'Falta',
-        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? 'Configurada' : 'Falta',
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'Configurada' : 'Falta',
-      });
-      setLoading(false);
-      return;
-    }
+    const bootstrapAuth = async () => {
+      setLoading(true);
+      try {
+        const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+        const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-
-        // ❌ Usuario NO verificado → NO permitir login
-        if (!firebaseUser.emailVerified) {
-          console.log("Usuario sin verificar, cerrando sesión...");
-          await signOut(auth);
+        if (!storedToken) {
           setUser(null);
           setUserData(null);
-          localStorage.removeItem("user");
           setLoading(false);
           return;
         }
 
-        // ✔ Usuario verificado → permitir acceso
-        setUser(firebaseUser);
-        await loadUserData(firebaseUser);
+        // Validar token y obtener usuario actual
+        const me = await apiFetch<{
+          id: number;
+          nombre?: string;
+          apellido?: string;
+          email: string;
+          role: AppRole;
+        }>('/api/auth/me', {
+          method: 'GET',
+        });
 
-      } else {
+        const authUser: AuthUser = {
+          id: me.id,
+          email: me.email,
+          nombre: me.nombre,
+          apellido: me.apellido,
+          displayName: me.nombre,
+          role: me.role,
+        };
+
+        let data: UserData = {
+          email: me.email,
+          displayName: me.nombre,
+          role: me.role,
+          owner: me.role === 'owner',
+        };
+
+        if (storedUser) {
+          try {
+            const parsed = JSON.parse(storedUser);
+            data = { ...data, ...parsed };
+          } catch {
+            // ignore parse error
+          }
+        }
+
+        localStorage.setItem('user', JSON.stringify(data));
+        setUser(authUser as any);
+        setUserData(data);
+      } catch (error) {
+        console.log('No se pudo cargar sesión desde backend, limpiando token', error);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
         setUser(null);
         setUserData(null);
-        localStorage.removeItem("user");
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setLoading(false);
-    });
-
-
-    return () => unsubscribe();
+    bootstrapAuth();
   }, []);
 
   useEffect(() => {
@@ -168,48 +137,77 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [user]);
 
+  const register = async (email: string, password: string, name?: string, role: 'owner' | 'client' = 'client') => {
+    const normalizedEmail = email.toLowerCase();
 
-
-
-  const register = async (email: string, password: string, name?: string) => {
-    if (!auth) throw new Error("Firebase Auth no inicializado");
-
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-
-    if (result.user) {
-      // Agregar nombre si existe
-      if (name) {
-        await updateProfile(result.user, { displayName: name });
-      }
-
-      // Enviar verificación
-      await sendEmailVerification(result.user);
-
-      // Cerrar sesión para evitar acceso sin verificar
-      await signOut(auth);
+    try {
+      await apiFetch('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          nombre: name || normalizedEmail.split('@')[0],
+          apellido: '',
+          correo: normalizedEmail,
+          password,
+          telefono: null,
+          role,
+        }),
+      });
 
       setJustRegistered(true);
+    } catch (error: any) {
+      // Propagar error con code para que el UI lo maneje igual que antes
+      const err: any = new Error(error.message || 'Error al registrar usuario');
+      if (error.code) err.code = error.code;
+      throw err;
     }
-
-    return result;
   };
 
 
 
 
   const login = async (email: string, password: string) => {
-    if (!auth) throw new Error("Firebase Auth no inicializado");
+    const normalizedEmail = email.toLowerCase();
 
-    const result = await signInWithEmailAndPassword(auth, email, password);
+    try {
+      const data = await apiFetch<{
+        token: string;
+        user: { id: number; nombre?: string; apellido?: string; email: string; role: AppRole };
+      }>('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ correo: normalizedEmail, password }),
+      });
 
-    if (!result.user.emailVerified) {
-      await signOut(auth);
-      const error: any = new Error("Debes verificar tu correo antes de iniciar sesión.");
-      error.code = "auth/email-not-verified";
-      throw error;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', data.token);
+      }
+
+      const authUser: AuthUser = {
+        id: data.user.id,
+        email: data.user.email,
+        nombre: data.user.nombre,
+        apellido: data.user.apellido,
+        displayName: data.user.nombre,
+        role: data.user.role,
+      };
+
+      const newUserData: UserData = {
+        email: data.user.email,
+        displayName: data.user.nombre,
+        role: data.user.role,
+        owner: data.user.role === 'owner',
+      };
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(newUserData));
+      }
+
+      setUser(authUser as any);
+      setUserData(newUserData);
+    } catch (error: any) {
+      const err: any = new Error(error.message || 'Error al iniciar sesión');
+      if (error.code) err.code = error.code;
+      throw err;
     }
-
-    return result;
   };
 
 
@@ -217,39 +215,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 
   const logout = async () => {
-    if (!auth) throw new Error("Firebase Auth no inicializado");
-    await signOut(auth);
-    localStorage.removeItem("favourites_temp");
-    localStorage.removeItem("user");
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('favourites_temp');
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+    }
+    setUser(null as any);
     setUserData(null);
   };
 
   const loginWithGoogle = () => {
-    if (!auth) throw new Error("Firebase Auth no inicializado");
-    return signInWithPopup(auth, googleProvider);
+    const error: any = new Error('El inicio de sesión con Google ya no está disponible.');
+    error.code = 'auth/google-disabled';
+    return Promise.reject(error);
   };
 
   const updateUserProfile = async (displayName?: string, photoURL?: string) => {
-    if (!auth?.currentUser) throw new Error("Usuario no autenticado");
-    
-    const updateData: { displayName?: string; photoURL?: string } = {};
-    if (displayName !== undefined) updateData.displayName = displayName;
-    if (photoURL !== undefined) updateData.photoURL = photoURL;
-    
-    await updateProfile(auth.currentUser, updateData);
-    // Forzar actualización del estado del usuario
-    setUser({ ...auth.currentUser });
-    
-    // Actualizar userData también
+    if (!user) throw new Error('Usuario no autenticado');
+
+    // Por ahora, solo actualizamos en el estado/localStorage.
+    const updatedUser: AuthUser = {
+      ...user,
+      displayName: displayName ?? user.displayName,
+    };
+    setUser(updatedUser as any);
+
     if (userData) {
-      const updatedUserData = { ...userData, displayName };
+      const updatedUserData: UserData = {
+        ...userData,
+        displayName: displayName ?? userData.displayName,
+      };
       setUserData(updatedUserData);
-      localStorage.setItem('user', JSON.stringify(updatedUserData));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(updatedUserData));
+      }
     }
   };
 
-  // Computed property para saber si es delivery
-  const isDelivery = userData?.role === 'delivery' || userData?.isDelivery === true;
+  const isOwner = userData?.role === 'owner' || userData?.owner === true;
 
   return (
     <AuthContext.Provider value={{ 
@@ -261,7 +264,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       logout, 
       loginWithGoogle, 
       updateUserProfile,
-      isDelivery 
+      isOwner,
+      anonymousId
     }}>
       {!loading && children}
     </AuthContext.Provider>

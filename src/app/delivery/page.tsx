@@ -7,8 +7,8 @@ export default function DeliveryPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirigir automáticamente a la página de órdenes de delivery
-    router.replace('/delivery/orders');
+    // Redirigir al nuevo portal de propietarios (compatibilidad con ruta legacy)
+    router.replace('/owner/properties');
   }, [router]);
 
   return <div>Redirigiendo...</div>;

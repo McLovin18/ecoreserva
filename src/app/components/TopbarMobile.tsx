@@ -8,28 +8,28 @@ import { usePathname } from 'next/navigation';
 
 const TopbarMobile = () => {
   const { user } = useAuth();
-  const { isAdmin, isDelivery } = useRole();
+  const { isAdmin, isOwner } = useRole();
   const pathname = usePathname();
 
   if (!user) return null;
 
-  // ✅ Menú base para todos los usuarios
-  const baseMenuItems = [
-    { name: 'Inicio', path: '/', icon: 'bi-house-door' },
-    { name: 'Productos', path: '/products', icon: 'bi-bag' },
-    { name: 'Mis compras', path: '/myOrders', icon: 'bi-bag-check' },
-    { name: 'Favoritos', path: '/favourite', icon: 'bi-heart' },
-  ];
+  // ✅ Menú base para todos los usuarios (turista: flujo de reservas)
+    const baseMenuItems = [
+      { name: 'Inicio', path: '/inicio', icon: 'bi-house' },
+      { name: 'Reservar', path: '/reservar', icon: 'bi-search' },
+      { name: 'Mis reservas', path: '/myReservations', icon: 'bi-calendar2-heart' },
+      { name: 'Actividades', path: '/actividades', icon: 'bi-calendar2-check' },
+      { name: 'Perfil', path: '/profile', icon: 'bi-person' },
+    ];
 
   // ✅ Menú de administración - fila principal
   const adminMainItems = [
-    { name: 'Admin', path: '/admin/orders', icon: 'bi-shield-check' }
+    { name: 'Admin', path: '/admin/reservations', icon: 'bi-shield-check' }
   ];
 
   // ✅ Menú de administración - fila secundaria
   const adminAdvancedItems = [
-    { name: 'Inventario', path: '/admin/inventory', icon: 'bi-boxes' },
-    { name: 'Estadísticas', path: '/admin/delivery-stats', icon: 'bi-graph-up-arrow' },
+    { name: 'Hospedajes', path: '/admin/inventory', icon: 'bi-building' },
     { name: 'Crear blogs', path: '/admin/crear-blogs', icon: 'bi-pencil-square' }
   ];
 
@@ -37,14 +37,17 @@ const TopbarMobile = () => {
   let mainMenuItems = [...baseMenuItems];
   let secondaryMenuItems: typeof baseMenuItems = [];
 
+  if (isOwner) {
+    mainMenuItems = [
+      ...baseMenuItems,
+      { name: 'Mis hospedajes', path: '/owner/properties', icon: 'bi-building' },
+      { name: 'Reservas anfitrión', path: '/owner/reservations', icon: 'bi-calendar2-check' },
+    ];
+  }
+
   if (isAdmin) {
     mainMenuItems = [...baseMenuItems, ...adminMainItems];
     secondaryMenuItems = adminAdvancedItems;
-  } else if (isDelivery) {
-    mainMenuItems = [
-      ...baseMenuItems,
-      { name: 'Entregas', path: '/delivery/orders', icon: 'bi-truck' }
-    ];
   }
 
   // Función para determinar si un link está activo
@@ -52,27 +55,7 @@ const TopbarMobile = () => {
     if (itemPath === '/') {
       return pathname === '/';
     }
-    
-    if (itemPath === '/admin/orders') {
-      return pathname === '/admin/orders';
-    }
-    
-    if (itemPath === '/admin/inventory') {
-      return pathname === '/admin/inventory';
-    }
-    
-    if (itemPath === '/admin/migration') {
-      return pathname === '/admin/migration';
-    }
-    
-    if (itemPath === '/admin/delivery-stats') {
-      return pathname === '/admin/delivery-stats' || pathname.startsWith('/admin/delivery-stats');
-    }
-    
-    if (itemPath === '/delivery/orders') {
-      return pathname.startsWith('/delivery');
-    }
-    
+
     return pathname.startsWith(itemPath);
   };
 

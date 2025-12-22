@@ -746,8 +746,9 @@ input:valid, textarea:valid, select:valid, .form-control:valid {
 
 .navbar-container {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .navbar-row {
@@ -796,15 +797,6 @@ input:valid, textarea:valid, select:valid, .form-control:valid {
     flex-wrap: wrap;
   }
 }
-
-
-@media (min-width: 992px) {
-  /* Selector bastante específico para tu navbar */
-  .bg-cosmetic-secondary .navbar-collapse {
-    display: none !important;
-  }
-}
-
 
 
 /* Forzar que el contenedor de subcategorías se alinee hacia la izquierda cuando se aplique la clase */

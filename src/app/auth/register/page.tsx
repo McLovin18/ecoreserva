@@ -11,6 +11,7 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [userType, setUserType] = useState<'client' | 'owner'>('client');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register, loginWithGoogle } = useAuth();
@@ -35,8 +36,8 @@ const Register = () => {
 
     try {
       setLoading(true);
-      await register(email, password, name);
-      router.push('/auth/verify-email'); // 👈 Página de verificación
+      await register(email, password, name, userType);
+      router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`); // Página de verificación con email
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
         setError('Este correo electrónico ya está en uso');
@@ -82,6 +83,27 @@ const Register = () => {
           <Form.Group className="mb-3">
             <Form.Label>Confirmar Contraseña</Form.Label>
             <Form.Control type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="rounded-1" />
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label>Tipo de cuenta</Form.Label>
+            <div className="d-flex gap-3">
+              <Form.Check
+                type="radio"
+                id="tipo-turista"
+                label="Turista"
+                name="userType"
+                checked={userType === 'client'}
+                onChange={() => setUserType('client')}
+              />
+              <Form.Check
+                type="radio"
+                id="tipo-anfitrion"
+                label="Anfitrión (dueño de hospedajes)"
+                name="userType"
+                checked={userType === 'owner'}
+                onChange={() => setUserType('owner')}
+              />
+            </div>
           </Form.Group>
           {error && <Alert variant="danger">{error}</Alert>}
           <Button type="submit" variant="dark" className="w-100 rounded-1 mb-3" disabled={loading}>

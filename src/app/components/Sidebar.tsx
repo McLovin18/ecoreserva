@@ -6,35 +6,44 @@ import { useAuth } from '../context/AuthContext';
 import { useRole } from '../context/adminContext';
 import { usePathname } from 'next/navigation';
 
+interface MenuItem {
+  name: string;
+  path: string;
+  icon: string;
+}
+
 const Sidebar = () => {
   const { user } = useAuth();
-  const { isAdmin, isDelivery } = useRole();
+  const { isAdmin, isOwner, isClient } = useRole();
   const pathname = usePathname();
 
   if (!user) return null;
 
-  const menuItems = [
-    { name: 'Inicio', path: '/', icon: 'bi-house-door' },
-    { name: 'Productos', path: '/products', icon: 'bi-bag' },
-    { name: 'Mis compras', path: '/myOrders', icon: 'bi-bag-check' },
-    { name: 'Favoritos', path: '/favourite', icon: 'bi-heart' },
-  ];
+  let menuItems: MenuItem[] = [];
 
-  // ✅ Agregar opciones específicas según el rol
+  // Navegación principal según rol
   if (isAdmin) {
-    menuItems.push(
-      { name: 'Admin Pedidos', path: '/admin/orders', icon: 'bi-clipboard-data' },
-      { name: 'Inventario', path: '/admin/inventory', icon: 'bi-boxes' },
-      // { name: 'Migración DB', path: '/admin/migration', icon: 'bi-database-fill-gear' },
-      { name: 'Estadísticas Delivery', path: '/admin/delivery-stats', icon: 'bi-graph-up-arrow' },
-      { name: 'Crear Blogs', path: '/admin/crear-blogs', icon: 'bi-journal-plus' },
+    menuItems = [
+      { name: 'Reservas (admin)', path: '/admin/reservations', icon: 'bi-calendar-check' },
+      { name: 'Hospedajes', path: '/admin/inventory', icon: 'bi-building' },
+    ];
+  } else if (isOwner) {
+    menuItems = [
+      { name: 'Mis Departamentos', path: '/owner/properties', icon: 'bi-building' },
+      { name: 'Reservas', path: '/owner/reservations', icon: 'bi-calendar2-check' },
+      { name: 'Actividades', path: '/owner/activities', icon: 'bi-tree' },
+    ];
+  } else if (isClient) {
+    menuItems = [
+      { name: 'Inicio', path: '/inicio', icon: 'bi-house-door' },
+      { name: 'Reservar', path: '/reservar', icon: 'bi-search' },
+      { name: 'Mis reservas', path: '/myReservations', icon: 'bi-calendar2-heart' },
+      { name: 'Actividades', path: '/actividades', icon: 'bi-tree' },
+    ];
+  }
 
-    );
-  }
-  
-  if (isDelivery) {
-    menuItems.push({ name: 'Mis Entregas', path: '/delivery/orders', icon: 'bi-truck' });
-  }
+  // Perfil disponible para todos los roles
+  menuItems.push({ name: 'Perfil', path: '/profile', icon: 'bi-person' });
 
   return (
     <>

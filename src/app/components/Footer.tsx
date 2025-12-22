@@ -3,8 +3,6 @@
 import React from "react";
 import { Container, Row, Col } from "react-bootstrap";
 import Link from "next/link";
-import { CATEGORIES, SUBCATEGORIES } from "../constants/categories"; 
-import { Facebook, Instagram, Twitter, Linkedin, Github } from "lucide-react";
 
 
 const Footer = () => (
@@ -14,61 +12,69 @@ const Footer = () => (
   >
     <Container>
       <Row>
-        {/* Sección contacto 40% del ancho */}
-
-        <Col xs={12} md={5} className="d-flex align-items-center justify-content-center flex-column text-center">
-
-          <img className='logo_img' style={ { maxWidth: "360px", height: "auto"}} src="/logo.png" alt="Logo" />
-
+        <Col xs={12} md={4} className=" d-flex align-items-center justify-content-center flex-column text-center mb-4 mb-md-0">
+          <h1 className="fw-bold mb-1 text-2xl">
+            EcoReserva
+          </h1>
+          
+          <p className="mt-3 mb-0" style={{ color: "var(--cosmetic-tertiary)" }}>
+            EcoReserva es una plataforma para reservar departamentos y hospedajes
+            de forma segura, sencilla y sostenible.
+          </p>
         </Col>
 
-        <Col>
-              <div>
-                <h5 className="fw-bold mb-3" style={{ color: "var(--cosmetic-accent)" }}>Enlaces útiles</h5>
-                <ul>
-                  
-                    <li><a style={{ color: "var(--cosmetic-tertiary)" }} href="/">Inicio</a></li>
-                    <li><a style={{ color: "var(--cosmetic-tertiary)" }} href="/products">Productos</a></li>
-                    <li><a style={{ color: "var(--cosmetic-tertiary)" }} href="/blogs">Blogs</a></li>
-                </ul>
-            </div>
-        </Col>
-        <Col xs={12} md={5} className="d-flex align-items-center justify-content-center flex-column text-center">
-          <div style={{display: "flex", flexDirection: "column"}}>
-            <div style={{display: "flex", flexDirection: "row", justifyContent: "center", alignItems: "center", padding: "1em"}}>
-              <a style={{margin: "0.5em"}}
-                href="https://www.facebook.com/share/17NfkFiL3i/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-blue-500 transition-colors"
-              >
-                <Facebook size={24} />
-              </a>
-
-              <a
-                href="https://www.instagram.com/tiffanyssupplies?igsh=MWE3eHd5OTNpbGd1cQ=="
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-pink-500 transition-colors"
-              >
-                <Instagram size={24} />
-              </a>
-
-            </div>
-
-            <div>
-
-              <h5 className="fw-bold mb-3" style={{ color: "var(--cosmetic-accent)" }}>Contáctanos</h5>
-              <p className="mb-1" style={{ color: "var(--cosmetic-tertiary)" }}>
-                Email: tiffanysvariedades@gmail.com
-              </p>
-              <p className="mb-0" style={{ color: "var(--cosmetic-tertiary)" }}>
-                Teléfono: +593 987275333
-              </p>
-            </div>
+        <Col xs={12} md={4} className="mb-4 mb-md-0">
+          <div>
+            <h5 className="fw-bold mb-3" style={{ color: "var(--cosmetic-accent)" }}>
+              Enlaces útiles
+            </h5>
+            <ul className="list-unstyled mb-0">
+              <li>
+                <Link href="/" className="footer-link" style={{ color: "var(--cosmetic-tertiary)" }}>
+                  Inicio
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/myReservations"
+                  className="footer-link"
+                  style={{ color: "var(--cosmetic-tertiary)" }}
+                >
+                  Mis reservas
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/owner/properties"
+                  className="footer-link"
+                  style={{ color: "var(--cosmetic-tertiary)" }}
+                >
+                  Soy anfitrión
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/admin/reservations"
+                  className="footer-link"
+                  style={{ color: "var(--cosmetic-tertiary)" }}
+                >
+                  Panel administrador
+                </Link>
+              </li>
+            </ul>
           </div>
+        </Col>
 
-
+        <Col xs={12} md={4} className="d-flex align-items-center justify-content-center flex-column text-center">
+          <h5 className="fw-bold mb-3" style={{ color: "var(--cosmetic-accent)" }}>
+            Contáctanos
+          </h5>
+          <p className="mb-2" style={{ color: "var(--cosmetic-tertiary)" }}>
+            ¿Tienes dudas sobre tus reservas o eres nuevo anfitrión?
+          </p>
+          <p className="mb-1" style={{ color: "var(--cosmetic-tertiary)" }}>
+            Correo: soporte@ecoreserva.app
+          </p>
         </Col>
 
       </Row>
@@ -78,7 +84,7 @@ const Footer = () => (
 
       <div className="text-center">
         <p className="small" style={{ color: "var(--cosmetic-tertiary)" }}>
-          &copy; {new Date().getFullYear()} Tiffany's Variedades. Todos los derechos reservados.
+          &copy; {new Date().getFullYear()} EcoReserva. Todos los derechos reservados.
         </p>
       </div>
     </Container>
