@@ -20,7 +20,6 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(''),
   title: {
     default: "EcoReserva - Reservas de departamentos y hospedajes",
     template: "%s | EcoReserva"
