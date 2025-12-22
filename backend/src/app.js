@@ -25,7 +25,11 @@ app.get('/api/health', async (req, res) => {
     res.json({ status: 'ok' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ status: 'error', message: 'DB connection failed' });
+    res.status(500).json({
+      status: 'error',
+      message: 'DB connection failed',
+      detail: err.message,
+    });
   }
 });
 
