@@ -199,9 +199,11 @@ export default function AdminReservationsPage() {
                       <Card.Body>
                         <div className="d-flex justify-content-between align-items-start mb-2">
                           <div>
-                            <h5 className="fw-bold mb-1">{reservation.propertyName}</h5>
+                            <h5 className="fw-bold mb-1">{reservation.propertyName || 'Hospedaje sin nombre'}</h5>
                             <div className="small text-muted">Reserva #{reservation.id?.slice(-6)}</div>
-                            <div className="small text-muted">Dueño: {reservation.ownerEmail}</div>
+                            <div className="small text-muted">
+                              Dueño: {reservation.ownerEmail || 'No disponible'}
+                            </div>
                           </div>
                           <Badge bg={statusVariant[reservation.status] as any}>
                             {statusLabel[reservation.status]}
@@ -209,7 +211,8 @@ export default function AdminReservationsPage() {
                         </div>
                         <div className="small mb-2">
                           <div>
-                            <strong>Cliente:</strong> {reservation.userName || reservation.userEmail}
+                            <strong>Cliente:</strong>{' '}
+                            {reservation.userName || reservation.userEmail || 'No disponible'}
                           </div>
                           <div>
                             <strong>Fechas:</strong> {new Date(reservation.startDate).toLocaleDateString()} - {new Date(reservation.endDate).toLocaleDateString()}
