@@ -27,7 +27,6 @@ const TopbarMobile = () => {
     menuItems = [
       { name: 'Reservas (admin)', path: '/admin/reservations', icon: 'bi-calendar-check' },
       { name: 'Hospedajes', path: '/admin/inventory', icon: 'bi-building' },
-      { name: 'Mi perfil', path: '/profile', icon: 'bi-person' },
     ];
   } else if (isOwner) {
     // Panel de anfitrión
@@ -35,8 +34,6 @@ const TopbarMobile = () => {
       { name: 'Mis departamentos', path: '/owner/properties', icon: 'bi-building' },
       { name: 'Reservas anfitrión', path: '/owner/reservations', icon: 'bi-calendar2-check' },
       { name: 'Actividades', path: '/owner/activities', icon: 'bi-tree' },
-      { name: 'Mi perfil', path: '/profile', icon: 'bi-person' },
-
     ];
   } else if (isClient) {
     // Panel de turista/cliente
@@ -45,8 +42,6 @@ const TopbarMobile = () => {
       { name: 'Reservar', path: '/reservar', icon: 'bi-search' },
       { name: 'Mis reservas', path: '/myReservations', icon: 'bi-calendar2-heart' },
       { name: 'Actividades', path: '/actividades', icon: 'bi-tree' },
-      { name: 'Mi perfil', path: '/profile', icon: 'bi-person' },
-
     ];
   }
 
