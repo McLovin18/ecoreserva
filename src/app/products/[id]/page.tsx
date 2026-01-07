@@ -28,6 +28,13 @@
                                     const [guests, setGuests] = useState(1);
                                     const [paymentMethod, setPaymentMethod] = useState<"Efectivo" | "Transferencia" | "Tarjeta">("Efectivo");
 
+                                    const selectedDepartmentForDisplay = selectedDepartmentId
+                                      ? departments.find((dep) => String(dep.id) === selectedDepartmentId)
+                                      : undefined;
+
+                                    const selectedDepartmentPrice =
+                                      selectedDepartmentForDisplay != null ? selectedDepartmentForDisplay.price : null;
+
                                     useEffect(() => {
                                       const load = async () => {
                                         if (!hotelId || Number.isNaN(hotelId)) {
@@ -190,7 +197,11 @@
                                                             <h3 className="mb-1">{hotel.name}</h3>
                                                             <div className="text-muted small">Categoría: {hotel.category}</div>
                                                           </div>
-                                                            {/* <Badge bg="success">${hotel.price.toFixed(2)} / noche</Badge> */}
+                                                          {selectedDepartmentPrice != null && (
+                                                            <Badge bg="success">
+                                                              ${selectedDepartmentPrice.toFixed(2)} / noche
+                                                            </Badge>
+                                                          )}
                                                         </div>
                                                         {hotel.description && (
                                                           <p className="mb-0 text-muted">{hotel.description}</p>
