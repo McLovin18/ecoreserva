@@ -133,7 +133,7 @@ class InventoryService {
           stock: typeof row.stock === 'number' ? row.stock : 1,
           price: Number(row.price ?? row.precio_base ?? 0),
           images: [],
-          category: 'Cabaña',
+          category: undefined,
           isActive:
             typeof row.isActive === 'boolean'
               ? row.isActive
@@ -195,7 +195,7 @@ class InventoryService {
         stock: typeof row.stock === 'number' ? row.stock : 1,
         price: Number(row.price ?? row.precio_base ?? 0),
         images: [],
-        category: 'Cabaña',
+        category: undefined,
         isActive:
           typeof row.isActive === 'boolean'
             ? row.isActive
@@ -222,7 +222,7 @@ class InventoryService {
         stock: typeof row.stock === 'number' ? row.stock : 1,
         price: Number(row.price ?? row.precio_base ?? 0),
         images: [],
-        category: 'Cabaña',
+        category: undefined,
         isActive: typeof row.isActive === 'boolean' ? row.isActive : row.estado === 'Activo',
         lastUpdated: new Date().toISOString(),
         description: row.description ?? row.descripcion,
