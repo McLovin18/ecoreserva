@@ -169,6 +169,15 @@ router.get('/by-hotel/:id', async (req, res) => {
         JOIN dbo.Hospedaje h ON d.id_hospedaje = h.id_hospedaje
         WHERE d.id_hospedaje = @idHospedaje
           AND d.estado = N'Aprobado'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM dbo.Reserva r
+            JOIN dbo.EstadoReserva er ON r.id_estado_reserva = er.id_estado_reserva
+            WHERE r.id_departamento = d.id_departamento
+              AND er.nombre_estado IN (N'Pendiente', N'Confirmada')
+              AND CAST(GETDATE() AS DATE) < r.fecha_salida
+              AND CAST(GETDATE() AS DATE) >= r.fecha_ingreso
+          )
         ORDER BY d.id_departamento ASC
       `);
 

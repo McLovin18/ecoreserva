@@ -14,6 +14,7 @@ export type ReservationStatus =
 export interface Reservation {
   id?: string;
   propertyId: number;
+  departmentId?: number | null;
   propertyName: string;
   ownerEmail: string;
   userEmail: string;
@@ -57,6 +58,7 @@ export const reservationService = {
       method: "POST",
       body: JSON.stringify({
         propertyId: payload.propertyId,
+        departmentId: payload.departmentId ?? null,
         propertyName: payload.propertyName,
         ownerEmail: payload.ownerEmail,
         total: payload.total,

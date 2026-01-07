@@ -8,6 +8,7 @@ const router = express.Router();
 router.post('/', requireAuth, requireRole('client'), async (req, res) => {
   const {
     propertyId,
+    departmentId,
     total,
     startDate,
     endDate,
@@ -22,21 +23,28 @@ router.post('/', requireAuth, requireRole('client'), async (req, res) => {
   try {
     const pool = await getPool();
 
-    // Verificar solapamiento básico de reservas para el mismo hospedaje
-    const overlapResult = await pool
+    // Verificar solapamiento de reservas:
+    // - Si se indica departmentId, solo se bloquea ese departamento.
+    // - Si no, se mantiene el bloqueo a nivel de hospedaje.
+    const overlapRequest = pool
       .request()
       .input('idHospedaje', sql.Int, propertyId)
+      .input('idDepartamento', sql.Int, departmentId || null)
       .input('startDate', sql.Date, new Date(startDate))
-      .input('endDate', sql.Date, new Date(endDate))
-      .query(`
-        SELECT 1
-        FROM dbo.Reserva r
-        JOIN dbo.EstadoReserva er ON r.id_estado_reserva = er.id_estado_reserva
-        WHERE r.id_hospedaje = @idHospedaje
-          AND er.nombre_estado IN (N'Pendiente', N'Confirmada')
-          AND @startDate < r.fecha_salida
-          AND @endDate   > r.fecha_ingreso
-      `);
+      .input('endDate', sql.Date, new Date(endDate));
+
+    const overlapResult = await overlapRequest.query(`
+      SELECT 1
+      FROM dbo.Reserva r
+      JOIN dbo.EstadoReserva er ON r.id_estado_reserva = er.id_estado_reserva
+      WHERE er.nombre_estado IN (N'Pendiente', N'Confirmada')
+        AND @startDate < r.fecha_salida
+        AND @endDate   > r.fecha_ingreso
+        AND (
+          (@idDepartamento IS NOT NULL AND r.id_departamento = @idDepartamento)
+          OR (@idDepartamento IS NULL AND r.id_hospedaje = @idHospedaje)
+        )
+    `);
 
     if (overlapResult.recordset.length > 0) {
       return res.status(400).json({ message: 'Las fechas seleccionadas ya están reservadas para este hospedaje.' });
@@ -57,6 +65,7 @@ router.post('/', requireAuth, requireRole('client'), async (req, res) => {
     const reservaResult = await pool
       .request()
       .input('idHospedaje', sql.Int, propertyId)
+      .input('idDepartamento', sql.Int, departmentId || null)
       .input('idUsuario', sql.Int, req.user.sub)
       .input('fechaIngreso', sql.Date, new Date(startDate))
       .input('fechaSalida', sql.Date, new Date(endDate))
@@ -65,12 +74,12 @@ router.post('/', requireAuth, requireRole('client'), async (req, res) => {
       .query(`
         INSERT INTO dbo.Reserva (
           fecha_ingreso, fecha_salida, num_personas,
-          id_usuario_turista, id_hospedaje, id_estado_reserva
+          id_usuario_turista, id_hospedaje, id_departamento, id_estado_reserva
         )
         OUTPUT INSERTED.id_reserva
         VALUES (
           @fechaIngreso, @fechaSalida, @numPersonas,
-          @idUsuario, @idHospedaje, @idEstado
+          @idUsuario, @idHospedaje, @idDepartamento, @idEstado
         )
       `);
 

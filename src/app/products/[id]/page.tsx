@@ -29,11 +29,24 @@
                                     const [paymentMethod, setPaymentMethod] = useState<"Efectivo" | "Transferencia" | "Tarjeta">("Efectivo");
 
                                     const selectedDepartmentForDisplay = selectedDepartmentId
-                                      ? departments.find((dep) => String(dep.id) === selectedDepartmentId)
+                                      ? departments.find((dep) => {
+                                          const depAny = dep as any;
+                                          const depId =
+                                            depAny.id ?? depAny.id_departamento ?? depAny.departmentId ?? null;
+                                          return depId != null && String(depId) === selectedDepartmentId;
+                                        })
                                       : undefined;
 
+                                    const selectedDepartmentPriceRaw = selectedDepartmentForDisplay
+                                      ? (selectedDepartmentForDisplay as any).pricePerNight ??
+                                        (selectedDepartmentForDisplay as any).price ??
+                                        0
+                                      : 0;
+
                                     const selectedDepartmentPrice =
-                                      selectedDepartmentForDisplay != null ? selectedDepartmentForDisplay.price : null;
+                                      typeof selectedDepartmentPriceRaw === "number" && selectedDepartmentPriceRaw > 0
+                                        ? selectedDepartmentPriceRaw
+                                        : null;
 
                                     useEffect(() => {
                                       const load = async () => {
@@ -125,14 +138,19 @@
                                         ? (selectedDepartment as any).pricePerNight ?? (selectedDepartment as any).price ?? 0
                                         : 0;
 
-                                      // El total de la reserva debe basarse siempre
-                                      // en el precio definido por el owner en el departamento.
-                                      const total = Number(depPriceRaw);
+                                      // Precio por noche del departamento (definido por el owner)
+                                      const nightlyPrice = Number(depPriceRaw);
 
-                                      if (!selectedDepartment || !total || isNaN(total)) {
-                                        setError("Debes seleccionar un departamento válido con precio definido por el anfitrión.");
+                                      const msPerNight = 1000 * 60 * 60 * 24;
+                                      const nightsRaw = (end.getTime() - start.getTime()) / msPerNight;
+                                      const nights = Math.round(nightsRaw);
+
+                                      if (!selectedDepartment || !nightlyPrice || isNaN(nightlyPrice) || nights <= 0) {
+                                        setError("Debes seleccionar un departamento válido y un rango de fechas con al menos 1 noche.");
                                         return;
                                       }
+
+                                      const total = nightlyPrice * nights;
 
                                       const propertyName = selectedDepartment && depName
                                         ? `${hotel.name} – ${depName}`
@@ -145,6 +163,11 @@
 
                                         await reservationService.createReservation({
                                           propertyId: hotel.productId,
+                                          departmentId: selectedDepartment
+                                            ? (selectedDepartment as any).id ??
+                                              (selectedDepartment as any).id_departamento ??
+                                              (selectedDepartment as any).departmentId ?? null
+                                            : null,
                                           propertyName,
                                           ownerEmail,
                                           userEmail: user.email,
@@ -196,6 +219,11 @@
                                                           <div>
                                                             <h3 className="mb-1">{hotel.name}</h3>
                                                             <div className="text-muted small">Categoría: {hotel.category}</div>
+                                                            {selectedDepartmentPrice == null && (
+                                                              <div className="text-muted small mt-1">
+                                                                Selecciona un departamento para ver su precio por noche.
+                                                              </div>
+                                                            )}
                                                           </div>
                                                           {selectedDepartmentPrice != null && (
                                                             <Badge bg="success">
