@@ -242,8 +242,16 @@ router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
         r.num_personas      AS huespedes,
         p.monto             AS monto_total,
         mp.nombre_metodo    AS metodo_pago,
-        er.nombre_estado    AS estado
+        er.nombre_estado    AS estado,
+        h.nombre            AS hotel_nombre,
+        uOwner.correo       AS owner_correo,
+        uClient.correo      AS cliente_correo,
+        uClient.nombre      AS cliente_nombre,
+        uClient.apellido    AS cliente_apellido
       FROM dbo.Reserva r
+      JOIN dbo.Hospedaje h      ON r.id_hospedaje      = h.id_hospedaje
+      JOIN dbo.Usuario   uOwner ON h.id_usuario_anfitrion = uOwner.id_usuario
+      JOIN dbo.Usuario   uClient ON r.id_usuario_turista  = uClient.id_usuario
       JOIN dbo.EstadoReserva er ON r.id_estado_reserva = er.id_estado_reserva
       LEFT JOIN dbo.Pago p       ON p.id_reserva       = r.id_reserva
       LEFT JOIN dbo.MetodoPago mp ON p.id_metodo_pago  = mp.id_metodo_pago

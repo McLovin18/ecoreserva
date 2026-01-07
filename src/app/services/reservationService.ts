@@ -140,9 +140,13 @@ export const reservationService = {
     return rows.map((row) => ({
       id: String(row.id_reserva),
       propertyId: row.id_hospedaje,
-      propertyName: '',
-      ownerEmail: '',
-      userEmail: '',
+      propertyName: row.hotel_nombre || "",
+      ownerEmail: row.owner_correo || "",
+      userEmail: row.cliente_correo || "",
+      userName:
+        (row.cliente_nombre || row.cliente_apellido)
+          ? `${row.cliente_nombre || ""} ${row.cliente_apellido || ""}`.trim()
+          : row.cliente_correo || "",
       total: Number(row.monto_total),
       startDate: row.fecha_inicio,
       endDate: row.fecha_fin,

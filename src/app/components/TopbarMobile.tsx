@@ -6,49 +6,52 @@ import { useAuth } from '../context/AuthContext';
 import { useRole } from '../context/adminContext';
 import { usePathname } from 'next/navigation';
 
+type MenuItem = {
+  name: string;
+  path: string;
+  icon: string;
+};
+
 const TopbarMobile = () => {
   const { user } = useAuth();
-  const { isAdmin, isOwner } = useRole();
+  const { isAdmin, isOwner, isClient } = useRole();
   const pathname = usePathname();
 
   if (!user) return null;
 
-  // ✅ Menú base para todos los usuarios (turista: flujo de reservas)
-    const baseMenuItems = [
+  // ✅ Construir menú según el rol del usuario (igual filosofía que Sidebar)
+  let menuItems: MenuItem[] = [];
+
+  if (isAdmin) {
+    // Panel de administración
+    menuItems = [
+      { name: 'Reservas (admin)', path: '/admin/reservations', icon: 'bi-calendar-check' },
+      { name: 'Hospedajes', path: '/admin/inventory', icon: 'bi-building' },
+      { name: 'Mi perfil', path: '/profile', icon: 'bi-person' },
+    ];
+  } else if (isOwner) {
+    // Panel de anfitrión
+    menuItems = [
+      { name: 'Mis departamentos', path: '/owner/properties', icon: 'bi-building' },
+      { name: 'Reservas anfitrión', path: '/owner/reservations', icon: 'bi-calendar2-check' },
+      { name: 'Actividades', path: '/owner/activities', icon: 'bi-tree' },
+      { name: 'Mi perfil', path: '/profile', icon: 'bi-person' },
+
+    ];
+  } else if (isClient) {
+    // Panel de turista/cliente
+    menuItems = [
       { name: 'Inicio', path: '/inicio', icon: 'bi-house' },
       { name: 'Reservar', path: '/reservar', icon: 'bi-search' },
       { name: 'Mis reservas', path: '/myReservations', icon: 'bi-calendar2-heart' },
-      { name: 'Actividades', path: '/actividades', icon: 'bi-calendar2-check' },
-      { name: 'Perfil', path: '/profile', icon: 'bi-person' },
-    ];
+      { name: 'Actividades', path: '/actividades', icon: 'bi-tree' },
+      { name: 'Mi perfil', path: '/profile', icon: 'bi-person' },
 
-  // ✅ Menú de administración - fila principal
-  const adminMainItems = [
-    { name: 'Admin', path: '/admin/reservations', icon: 'bi-shield-check' }
-  ];
-
-  // ✅ Menú de administración - fila secundaria
-  const adminAdvancedItems = [
-    { name: 'Hospedajes', path: '/admin/inventory', icon: 'bi-building' },
-    { name: 'Crear blogs', path: '/admin/crear-blogs', icon: 'bi-pencil-square' }
-  ];
-
-  // ✅ Construir menús según el rol del usuario
-  let mainMenuItems = [...baseMenuItems];
-  let secondaryMenuItems: typeof baseMenuItems = [];
-
-  if (isOwner) {
-    mainMenuItems = [
-      ...baseMenuItems,
-      { name: 'Mis hospedajes', path: '/owner/properties', icon: 'bi-building' },
-      { name: 'Reservas anfitrión', path: '/owner/reservations', icon: 'bi-calendar2-check' },
     ];
   }
 
-  if (isAdmin) {
-    mainMenuItems = [...baseMenuItems, ...adminMainItems];
-    secondaryMenuItems = adminAdvancedItems;
-  }
+  // Perfil disponible para todos los roles
+  menuItems.push({ name: 'Perfil', path: '/profile', icon: 'bi-person' });
 
   // Función para determinar si un link está activo
   const isActiveLink = (itemPath: string) => {
@@ -60,7 +63,7 @@ const TopbarMobile = () => {
   };
 
   // Componente para renderizar una fila de navegación
-  const renderNavRow = (items: typeof baseMenuItems, className = '') => (
+  const renderNavRow = (items: MenuItem[], className = '') => (
     <ul className={`nav nav-pills d-flex justify-content-around mb-0 ${className}`}>
       {items.map((item) => (
         <li key={item.path} className="nav-item flex-fill">
@@ -126,15 +129,8 @@ const TopbarMobile = () => {
       }}
     >
       <div className="container-fluid px-2 py-2">
-        {/* Fila principal de navegación */}
-        {renderNavRow(mainMenuItems)}
-        
-        {/* Fila secundaria solo para administradores */}
-        {isAdmin && secondaryMenuItems.length > 0 && (
-          <div className="mt-2 pt-2 border-top" style={{ borderColor: 'var(--cosmetic-primary)' }}>
-            {renderNavRow(secondaryMenuItems, 'admin-secondary')}
-          </div>
-        )}
+        {/* Fila principal de navegación según el rol */}
+        {renderNavRow(menuItems)}
       </div>
       
       {/* Estilos CSS específicos */}
@@ -154,19 +150,6 @@ const TopbarMobile = () => {
           transition: all 0.2s ease;
         }
 
-        .topbar-mobile .admin-secondary .nav-link {
-          min-height: 55px;
-          font-size: 0.7rem;
-        }
-
-        .topbar-mobile .admin-secondary .nav-link i {
-          font-size: 1rem;
-        }
-
-        .topbar-mobile .admin-secondary .nav-link span {
-          font-size: 0.65rem;
-        }
-
         @media (max-width: 576px) {
           .topbar-mobile .nav-link {
             padding: 0.4rem 0.2rem !important;
@@ -181,19 +164,6 @@ const TopbarMobile = () => {
           .topbar-mobile .nav-link span {
             font-size: 0.6rem !important;
           }
-
-          .topbar-mobile .admin-secondary .nav-link {
-            min-height: 50px;
-            padding: 0.3rem 0.1rem !important;
-          }
-
-          .topbar-mobile .admin-secondary .nav-link i {
-            font-size: 0.9rem !important;
-          }
-
-          .topbar-mobile .admin-secondary .nav-link span {
-            font-size: 0.55rem !important;
-          }
         }
 
         @media (min-width: 577px) and (max-width: 991px) {
@@ -204,10 +174,6 @@ const TopbarMobile = () => {
           
           .topbar-mobile .nav-link i {
             font-size: 1.2rem !important;
-          }
-
-          .topbar-mobile .admin-secondary .nav-link {
-            min-height: 60px;
           }
         }
       `}</style>
