@@ -80,7 +80,7 @@ export default function ReservarPage() {
           </p>
         </div>
         <Form.Control
-          placeholder="Buscar por nombre, ubicación o categoría"
+          placeholder="Buscar por nombre o ubicación"
           style={{ maxWidth: 280 }}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -112,9 +112,6 @@ export default function ReservarPage() {
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <div>
                       <h5 className="fw-bold mb-1">{p.name}</h5>
-                      {p.category && (
-                        <small className="text-muted text-uppercase">{p.category}</small>
-                      )}
                     </div>
                     <Badge bg={p.stock > 0 ? 'success' : 'secondary'}>
                       {p.stock > 0 ? `${p.stock} disponibles` : 'Sin stock'}

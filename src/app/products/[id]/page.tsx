@@ -218,7 +218,6 @@
                                                         <div className="d-flex justify-content-between align-items-start mb-2">
                                                           <div>
                                                             <h3 className="mb-1">{hotel.name}</h3>
-                                                            <div className="text-muted small">Categoría: {hotel.category}</div>
                                                             {selectedDepartmentPrice == null && (
                                                               <div className="text-muted small mt-1">
                                                                 Selecciona un departamento para ver su precio por noche.
