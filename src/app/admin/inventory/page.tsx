@@ -63,7 +63,6 @@ export default function AdminSpacesPage() {
   const [newHotel, setNewHotel] = useState({
     name: "",
     description: "",
-    price: "",
     ownerEmail: "",
     location: "",
   });
@@ -100,28 +99,26 @@ export default function AdminSpacesPage() {
 
   const handleCreateHotel = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newHotel.name || !newHotel.price || !newHotel.ownerEmail || !newHotel.location) {
+    if (!newHotel.name || !newHotel.ownerEmail || !newHotel.location) {
       setMessage({
         type: "error",
-        text: "Nombre, precio, ubicación y correo del anfitrión son obligatorios.",
+        text: "Nombre, ubicación y correo del anfitrión son obligatorios.",
       });
       return;
     }
 
     try {
       setCreating(true);
-      const priceNumber = Number(newHotel.price);
       const created = await hotelService.createHotel({
         name: newHotel.name,
         description: newHotel.description,
-        price: priceNumber,
         ownerEmail: newHotel.ownerEmail,
         location: newHotel.location,
       });
 
       setHotels((prev) => [created, ...prev]);
       setMessage({ type: "success", text: "Hotel creado correctamente." });
-      setNewHotel({ name: "", description: "", price: "", ownerEmail: "", location: "" });
+      setNewHotel({ name: "", description: "", ownerEmail: "", location: "" });
     } catch (err: any) {
       console.error("Error creando hotel", err);
       const msg = err?.message || "No se pudo crear el hotel.";
@@ -198,7 +195,7 @@ export default function AdminSpacesPage() {
                         required
                       />
                     </Col>
-                    <Col xs={12} md={3}>
+                    <Col xs={12} md={4}>
                       <Form.Label>Ubicación (ciudad / zona)</Form.Label>
                       <Form.Control
                         type="text"
@@ -210,7 +207,7 @@ export default function AdminSpacesPage() {
                         required
                       />
                     </Col>
-                    <Col xs={12} md={3}>
+                    <Col xs={12} md={4}>
                       <Form.Label>Correo del anfitrión</Form.Label>
                       <Form.Control
                         type="email"
@@ -219,20 +216,6 @@ export default function AdminSpacesPage() {
                           setNewHotel((prev) => ({ ...prev, ownerEmail: e.target.value }))
                         }
                         placeholder="anfitrion@ejemplo.com"
-                        required
-                      />
-                    </Col>
-                    <Col xs={12} md={3}>
-                      <Form.Label>Precio base / noche</Form.Label>
-                      <Form.Control
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        value={newHotel.price}
-                        onChange={(e) =>
-                          setNewHotel((prev) => ({ ...prev, price: e.target.value }))
-                        }
-                        placeholder="80.00"
                         required
                       />
                     </Col>
@@ -295,9 +278,6 @@ export default function AdminSpacesPage() {
                             {hotel.description && (
                               <p className="text-muted small mb-2">{hotel.description}</p>
                             )}
-                            <div className="small mb-2">
-                              <strong>Precio base:</strong> ${hotel.price.toFixed(2)} / noche
-                            </div>
                             <div className="small mb-2">
                               <strong>Actividades configuradas:</strong> {activities.length}
                             </div>

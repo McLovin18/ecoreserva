@@ -118,7 +118,14 @@
                                         ? (selectedDepartment as any).pricePerNight ?? (selectedDepartment as any).price ?? 0
                                         : 0;
 
-                                      const total = selectedDepartment ? Number(depPriceRaw) || hotel.price : hotel.price;
+                                      // El total de la reserva debe basarse siempre
+                                      // en el precio definido por el owner en el departamento.
+                                      const total = Number(depPriceRaw);
+
+                                      if (!selectedDepartment || !total || isNaN(total)) {
+                                        setError("Debes seleccionar un departamento válido con precio definido por el anfitrión.");
+                                        return;
+                                      }
 
                                       const propertyName = selectedDepartment && depName
                                         ? `${hotel.name} – ${depName}`
@@ -183,7 +190,7 @@
                                                             <h3 className="mb-1">{hotel.name}</h3>
                                                             <div className="text-muted small">Categoría: {hotel.category}</div>
                                                           </div>
-                                                          <Badge bg="success">${hotel.price.toFixed(2)} / noche</Badge>
+                                                            {/* <Badge bg="success">${hotel.price.toFixed(2)} / noche</Badge> */}
                                                         </div>
                                                         {hotel.description && (
                                                           <p className="mb-0 text-muted">{hotel.description}</p>
@@ -192,8 +199,12 @@
                                                     </Card>
 
                                                     <Card className="shadow-sm border-0">
-                                                      <Card.Body>
-                                                        <h5 className="mb-3">Departamentos disponibles</h5>
+                                                        <Card.Body>
+                                                        <h5 className="mb-1">Departamentos disponibles</h5>
+                                                        <p className="text-muted small mb-3">
+                                                          El precio por noche de la reserva corresponde al departamento seleccionado,
+                                                          según la tarifa definida por el anfitrión.
+                                                        </p>
 
                                                         {departments.length === 0 && (
                                                           <p className="text-muted mb-0">

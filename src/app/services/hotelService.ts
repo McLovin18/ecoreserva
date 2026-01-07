@@ -6,19 +6,19 @@ export interface Hotel {
   id: number;
   name: string;
   description: string;
-  price: number;
   type: string;
   status: string;
   isActive: boolean;
   ownerEmail: string;
 }
+}
 
 export interface CreateHotelPayload {
   name: string;
   description?: string;
-  price: number;
   ownerEmail: string;
   location?: string;
+}
 }
 
 export const hotelService = {
@@ -30,7 +30,6 @@ export const hotelService = {
       id: row.id,
       name: row.name,
       description: row.description,
-      price: Number(row.price ?? row.precio_base ?? 0),
       type: row.type ?? row.tipo_hospedaje ?? "Hotel",
       status: row.status ?? row.estado ?? "Activo",
       isActive: Boolean(row.isActive ?? row.estado === "Activo"),
@@ -42,7 +41,6 @@ export const hotelService = {
     const body: any = {
       name: payload.name,
       description: payload.description || "",
-      price: payload.price,
       ownerEmail: payload.ownerEmail,
     };
 
@@ -63,7 +61,6 @@ export const hotelService = {
       id: created.id,
       name: payload.name,
       description: payload.description || "",
-      price: payload.price,
       type: "Hotel",
       status: "Activo",
       isActive: true,

@@ -75,7 +75,8 @@ export default function ReservarPage() {
         <div>
           <h1 className="fw-bold mb-1">Reservar hospedaje</h1>
           <p className="text-muted mb-0">
-            Explora los departamentos disponibles y realiza una nueva reserva.
+            Explora los departamentos disponibles y realiza una nueva reserva. El precio se basa
+            siempre en la tarifa por noche que definió cada anfitrión para su departamento.
           </p>
         </div>
         <Form.Control
@@ -131,7 +132,9 @@ export default function ReservarPage() {
                   )}
                   {!loadingDepartments && departmentsByHotel[p.productId] && departmentsByHotel[p.productId].length > 0 && (
                     <div className="mb-2">
-                      <small className="text-muted d-block mb-1">Departamentos en este hospedaje:</small>
+                      <small className="text-muted d-block mb-1">
+                        Departamentos en este hospedaje (tarifa por noche definida por el anfitrión):
+                      </small>
                       <div className="d-flex flex-wrap gap-1">
                         {departmentsByHotel[p.productId].map((d) => (
                           <Badge key={d.id} bg="info" className="text-wrap">
@@ -142,7 +145,9 @@ export default function ReservarPage() {
                     </div>
                   )}
                   <div className="d-flex justify-content-between align-items-center mt-auto">
-                    <span className="fw-bold">${p.price.toFixed(2)} / noche</span>
+                    <small className="text-muted me-2">
+                      Selecciona un departamento para ver su precio por noche.
+                    </small>
                     <Button
                       as={Link as any}
                       href={`/products/${p.productId}`}

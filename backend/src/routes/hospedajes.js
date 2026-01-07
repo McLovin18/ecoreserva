@@ -13,7 +13,6 @@ router.get('/', async (req, res) => {
         h.id_hospedaje,
         h.nombre,
         h.descripcion,
-        h.precio_base,
         th.nombre_tipo       AS tipo_hospedaje,
         eh.nombre_estado     AS estado
       FROM dbo.Hospedaje h
@@ -27,7 +26,6 @@ router.get('/', async (req, res) => {
       id: row.id_hospedaje,
       name: row.nombre,
       description: row.descripcion,
-      price: row.precio_base,
       type: row.tipo_hospedaje,
       status: row.estado,
       isActive: row.estado === 'Activo',
@@ -52,7 +50,6 @@ router.get('/owner/me', requireAuth, requireRole('owner', 'admin'), async (req, 
           h.id_hospedaje,
           h.nombre,
           h.descripcion,
-          h.precio_base,
           th.nombre_tipo       AS tipo_hospedaje,
           eh.nombre_estado     AS estado
         FROM dbo.Hospedaje h
@@ -66,7 +63,6 @@ router.get('/owner/me', requireAuth, requireRole('owner', 'admin'), async (req, 
       id: row.id_hospedaje,
       name: row.nombre,
       description: row.descripcion,
-      price: row.precio_base,
       type: row.tipo_hospedaje,
       status: row.estado,
       isActive: row.estado === 'Activo',
@@ -88,7 +84,6 @@ router.get('/admin', requireAuth, requireRole('admin'), async (req, res) => {
         h.id_hospedaje,
         h.nombre,
         h.descripcion,
-        h.precio_base,
         th.nombre_tipo       AS tipo_hospedaje,
         eh.nombre_estado     AS estado,
         u.correo             AS owner_email
@@ -103,7 +98,6 @@ router.get('/admin', requireAuth, requireRole('admin'), async (req, res) => {
       id: row.id_hospedaje,
       name: row.nombre,
       description: row.descripcion,
-      price: row.precio_base,
       type: row.tipo_hospedaje,
       status: row.estado,
       isActive: row.estado === 'Activo',
@@ -121,7 +115,6 @@ router.get('/admin', requireAuth, requireRole('admin'), async (req, res) => {
 router.post('/', requireAuth, requireRole('owner', 'admin'), async (req, res) => {
   const {
     name,
-    price,
     description,
     tipoHospedajeId,
     ubicacionId,
@@ -132,8 +125,8 @@ router.post('/', requireAuth, requireRole('owner', 'admin'), async (req, res) =>
     provincia,
   } = req.body;
 
-  if (!name || price == null) {
-    return res.status(400).json({ message: 'Faltan datos obligatorios del hospedaje (nombre, precio).' });
+  if (!name) {
+    return res.status(400).json({ message: 'Faltan datos obligatorios del hospedaje (nombre).' });
   }
 
   try {
@@ -235,19 +228,18 @@ router.post('/', requireAuth, requireRole('owner', 'admin'), async (req, res) =>
       .request()
       .input('nombre', sql.NVarChar(120), name)
       .input('descripcion', sql.NVarChar(600), description || '')
-      .input('precioBase', sql.Decimal(10, 2), price)
       .input('idUsuario', sql.Int, anfitrionId)
       .input('idTipo', sql.Int, idTipo)
       .input('idUbicacion', sql.Int, idUbicacion)
       .input('idEstado', sql.Int, idEstado)
       .query(`
         INSERT INTO dbo.Hospedaje (
-          nombre, descripcion, precio_base, id_usuario_anfitrion,
+          nombre, descripcion, id_usuario_anfitrion,
           id_tipo_hospedaje, id_ubicacion, id_estado_hospedaje
         )
         OUTPUT INSERTED.id_hospedaje
         VALUES (
-          @nombre, @descripcion, @precioBase, @idUsuario,
+          @nombre, @descripcion, @idUsuario,
           @idTipo, @idUbicacion, @idEstado
         )
       `);
