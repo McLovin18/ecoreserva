@@ -26,7 +26,6 @@ router.get('/', async (req, res) => {
       id: row.id_hospedaje,
       name: row.nombre,
       description: row.descripcion,
-      type: row.tipo_hospedaje,
       status: row.estado,
       isActive: row.estado === 'Activo',
     }));
@@ -63,7 +62,6 @@ router.get('/owner/me', requireAuth, requireRole('owner', 'admin'), async (req, 
       id: row.id_hospedaje,
       name: row.nombre,
       description: row.descripcion,
-      type: row.tipo_hospedaje,
       status: row.estado,
       isActive: row.estado === 'Activo',
     }));
@@ -98,7 +96,6 @@ router.get('/admin', requireAuth, requireRole('admin'), async (req, res) => {
       id: row.id_hospedaje,
       name: row.nombre,
       description: row.descripcion,
-      type: row.tipo_hospedaje,
       status: row.estado,
       isActive: row.estado === 'Activo',
       ownerEmail: row.owner_email,
