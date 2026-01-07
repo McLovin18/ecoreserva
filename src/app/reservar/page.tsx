@@ -56,8 +56,7 @@ export default function ReservarPage() {
     const term = search.toLowerCase();
     return (
       p.name.toLowerCase().includes(term) ||
-      (p.description || '').toLowerCase().includes(term) ||
-      (p.category || '').toLowerCase().includes(term)
+      (p.description || '').toLowerCase().includes(term)
     );
   });
 
