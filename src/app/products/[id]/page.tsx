@@ -247,7 +247,8 @@
 
                                                         {departments.length === 0 && (
                                                           <p className="text-muted mb-0">
-                                                            Aún no hay departamentos aprobados para este hospedaje.
+                                                            No hay departamentos disponibles en este momento. Pueden estar en revisión
+                                                            del administrador o reservados para las fechas actuales.
                                                           </p>
                                                         )}
 
